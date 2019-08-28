@@ -3,8 +3,8 @@
 
 # additional deployment requirements
 psycopg2
-django-storages
+django-storages==1.6.6
 boto3
 #supervisor
 celery[sqs]==4.1.1
-django-celery-beat
+django-celery-beat==1.1.1 
