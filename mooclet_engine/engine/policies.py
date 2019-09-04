@@ -297,21 +297,57 @@ def if_then_rules(variables, context):
 		if case != "else":
 			logical_statement = parameters[case]['logical_statement']
 			print(logical_statement)
-			replace_variables = re.findall('\{[\w ]+\}', logical_statement)
+			#flag = False
+			# chunk = ''
+			# replace_variables = []
+			# for i in logical_statement.split():
+			# 	if flag:
+			# 		if "}" in i:
+			# 			chunk = chunk + i
+			# 			replace_variables.append(chunk)
+			# 			flag = False
+			# 		else:
+			# 			chunk = chunk + i
+			# 	if "{" in i and "}" in i:
+			# 		replace_variables.append(i)
+			# 	elif "{" in i and "}" not in i:
+			# 		flag = True
+			# 		chunk = chunk + i
+
+			replace_variables = re.findall(r"{.*?}", logical_statement)
 			print(replace_variables)
+			logical_statement_clean = logical_statement
 			var_dict = {}
 			print(context['learner'].name)
 			for variable in replace_variables:
+				#format {var_name|mooclet=mooclet|version=version}
+				query_args = {}
 				variable_name = variable.strip('{}')
+				items = variable_name.split('|')
+				variable_name = items[0]
+				query_args['variable__name'] = variable_name
+				for item in items[1:]:
+					item = item.split('=')
+					if "__name" not in item[0]:
+						item[1] = int(item[1])
+					query_args[item[0]] = item[1]
+				query_args['learner'] = context['learner']
+
+				logical_statement_clean = logical_statement_clean.replace(variable, "{}".format(variable_name))
 				print(variable_name)
+				if variable == 'version|mooclet':
+					pass
+
 				#var_db = Variable.objects.get(name=variable)
 				#should we always get the first? In practice this means most recently added
-				val = Value.objects.filter(variable__name=variable_name, learner=context['learner']).first()
+				val = Value.objects.filter(**query_args).first()
 				if val:
 					var_dict[variable_name] = val.value
 				else:
 					var_dict[variable_name] = None
-			logical_converted = logical_statement.format(**var_dict)
+			print("logical statement clean:")
+			print(logical_statement_clean)
+			logical_converted = logical_statement_clean.format(**var_dict)
 			print(logical_converted)
 			truth = None
 			try:
