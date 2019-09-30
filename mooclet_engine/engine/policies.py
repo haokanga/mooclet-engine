@@ -333,10 +333,10 @@ def if_then_rules(variables, context):
 					query_args[item[0]] = item[1]
 				query_args['learner'] = context['learner']
 
-				logical_statement_clean = logical_statement_clean.replace(variable, "{}".format(variable_name))
+				logical_statement_clean = logical_statement_clean.replace(variable, "{{{}}}".format(variable_name))
 				print(variable_name)
-				if variable == 'version|mooclet':
-					pass
+				# if variable == 'version|mooclet':
+				# 	pass
 
 				#var_db = Variable.objects.get(name=variable)
 				#should we always get the first? In practice this means most recently added
@@ -345,6 +345,8 @@ def if_then_rules(variables, context):
 					var_dict[variable_name] = val.value
 				else:
 					var_dict[variable_name] = None
+			print("var dict:")
+			print(var_dict)
 			print("logical statement clean:")
 			print(logical_statement_clean)
 			logical_converted = logical_statement_clean.format(**var_dict)
@@ -372,6 +374,7 @@ def if_then_rules(variables, context):
 		return version_set.first()
 		#what do we do if all cases fail and no else? uniform random w/ a notation?
 
+# Runs exact same policy as above, but makes soure the output is a valid date
 
 def if_then_rules_time(variables, context):
 	version = if_then_rules(variables, context)

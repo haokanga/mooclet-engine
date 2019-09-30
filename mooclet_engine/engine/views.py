@@ -147,7 +147,8 @@ class LearnerViewSet(viewsets.ModelViewSet):
     queryset = Learner.objects.all()
     #lookup_field = 'name'
     serializer_class = LearnerSerializer
-    search_fields = ('name',)
+    search_fields = ('name','environment')
+    filter_fields = ('name','environment')
 
 class PandasValueViewSet(PandasView):
     queryset = Value.objects.all()
