@@ -4,6 +4,6 @@ from . import views
 
 urlpatterns = [
 	url(r'^engine/', include('engine.urls', namespace="engine")),
-	url(r'^admin/', include(admin.site.urls)),
+	url(r'^admin/', admin.site.urls),
     url(r'^$', views.home, name='home'),
 ]
