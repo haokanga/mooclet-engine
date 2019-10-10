@@ -50,7 +50,7 @@ class Version(models.Model):
     '''
     
     name = models.CharField(max_length=200,default='')
-    mooclet = models.ForeignKey(Mooclet,on_delete=models.SET_NULL)
+    mooclet = models.ForeignKey(Mooclet,on_delete=models.SET_NULL,null=True)
     text = models.TextField(blank=True,default='')
     version_id = models.PositiveIntegerField(blank=True,null=True)
     # mooclet_version_id = models.PositiveIntegerField(blank=True)
@@ -120,7 +120,7 @@ class Value(models.Model):
         mooclet: ?
         version: student rating of an explanation, instructors prior judgement
     '''
-    variable = models.ForeignKey(Variable,on_delete=models.SET_NULL)
+    variable = models.ForeignKey(Variable,on_delete=models.SET_NULL,null=True)
 
     learner = models.ForeignKey(Learner,null=True,blank=True, on_delete=models.SET_NULL)
     mooclet = models.ForeignKey(Mooclet,null=True,blank=True, on_delete=models.SET_NULL)
@@ -197,7 +197,7 @@ class Policy(models.Model):
 
 class PolicyParameters(models.Model):
     mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
-    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL,null=True)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     latest_update = models.DateTimeField(null=True, blank=True)
@@ -211,7 +211,7 @@ class PolicyParameters(models.Model):
 
 class PolicyParametersHistory(models.Model):
     mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
-    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL, null=True)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     creation_time = models.DateTimeField(null=True, blank=True, auto_now_add=True)
