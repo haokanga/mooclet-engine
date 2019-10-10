@@ -199,7 +199,7 @@ def sample_without_replacement(variables, context):
 			# print "nothing"
 			all_versions = mooclet.version_set.all()#values_list("version", flat=True)
 			if not previous_versions:
-				print "no prev vers"
+				print ("no prev vers")
 				previous_versions = Version.objects.filter(value__variable__name="version", mooclet=mooclet).all()
 			if previous_versions:
 				version = sample_no_replacement(all_versions, previous_versions)
@@ -226,10 +226,10 @@ def sample_without_replacement(variables, context):
 def sample_without_replacement2(variables, context):
 	mooclet = context['mooclet']
 	policy_parameters = context['policy_parameters']
-	print "parameters:"
-	print policy_parameters
+	print ("parameters:")
+	print (policy_parameters)
 	conditions = None
-	print "starting"
+	print ("starting")
 	previous_versions = None
 	version = None
 
@@ -238,18 +238,18 @@ def sample_without_replacement2(variables, context):
 	Version = apps.get_model('engine', 'Version')
 
 	if policy_parameters:
-		print "Has policy parameters"
+		print ("Has policy parameters")
 		policy_parameters = policy_parameters.parameters
 
 		if policy_parameters["type"] == "per-user" and context["learner"]:
-			print "Per user and Has learner"
+			print ("Per user and Has learner")
 			#ALL versions
 			previous_versions = Version.objects.filter(value__variable__name="version", mooclet=mooclet).all()
 
 			previous_versions_user = previous_versions.filter(value__learner=context["learner"])
 
 			if bool(previous_versions_user):
-				print "has_previous_versions"
+				print ("has_previous_versions")
 				#if previous versions, return a new set of factors
 				all_versions = mooclet.version_set.all()
 				factor_names = policy_parameters["variables"].keys()
@@ -399,20 +399,20 @@ def thompson_sampling_contextual(variables, context):
 	Variable = apps.get_model('engine', 'Variable')
 	Value = apps.get_model('engine', 'Value')
 	Version = apps.get_model('engine', 'Version')
-  	# Store normal-inverse-gamma parameters
+	# Store normal-inverse-gamma parameters
 	policy_parameters = context['policy_parameters']
 	parameters = policy_parameters.parameters
   
-  	# Store regression equation string
+	# Store regression equation string
 	regression_formula = parameters['regression_formula']
   
 	# Action space, assumed to be a json
 	action_space = parameters['action_space']
   
-  	# Include intercept can be true or false
+	# Include intercept can be true or false
 	include_intercept = parameters['include_intercept']
   
-  	# Store contextual variables
+	# Store contextual variables
 	contextual_vars = parameters['contextual_variables']
 	if 'learner' not in context:
 		pass
@@ -430,50 +430,50 @@ def thompson_sampling_contextual(variables, context):
 	variance_b = parameters['variance_b']
 	print('prior mean: ' + str(mean))
 	print('prior cov: ' + str(cov))
-  	# Draw variance of errors
+	# Draw variance of errors
 	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
   
-  	# Draw regression coefficients according to priors
+	# Draw regression coefficients according to priors
 	coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
 	print('sampled coeffs: ' + str(coef_draw))
 
 	## Generate all possible action combinations
-  	# Initialize action set
+	# Initialize action set
 	all_possible_actions = [{}]
   
-  	# Itterate over actions label names
+	# Itterate over actions label names
 	for cur in action_space:
-    
-    		# Store set values corresponding to action labels
+
+			# Store set values corresponding to action labels
 		cur_options = action_space[cur]
-    
-    		# Initialize list of feasible actions
+
+			# Initialize list of feasible actions
 		new_possible = []
-    
-    		# Itterate over action set
+
+			# Itterate over action set
 		for a in all_possible_actions:
-      
-      			# Itterate over value sets correspdong to action labels
+
+				# Itterate over value sets correspdong to action labels
 			for cur_a in cur_options:
 				new_a = a.copy()
 				new_a[cur] = cur_a
-        
-        			# Check if action assignment is feasible
+
+					# Check if action assignment is feasible
 				if is_valid_action(new_a):
-          
-          				# Append feasible action to list
+
+						# Append feasible action to list
 					new_possible.append(new_a)
 					all_possible_actions = new_possible
 
-  	# Print entire action set
+	# Print entire action set
 	print('all possible actions: ' + str(all_possible_actions))
 
 	## Calculate outcome for each action and find the best action
 	best_outcome = -np.inf
 	best_action = None
-  
-  	print('regression formula: ' + regression_formula)
-  	# Itterate of all feasible actions
+
+	print('regression formula: ' + regression_formula)
+	# Itterate of all feasible actions
 	for action in all_possible_actions:
 		independent_vars = action.copy()
 		independent_vars.update(contextual_vars)
@@ -487,7 +487,7 @@ def thompson_sampling_contextual(variables, context):
 			best_outcome = outcome
 			best_action = action
 
-  	# Print optimal action
+	# Print optimal action
 	print('best action: ' + str(best_action))
 	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
 
@@ -507,41 +507,41 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 	:param formula: regression formula
 	:return: outcome given formula, coefficients and variables values
 	'''
-  	# Strip blank beginning and end space from equation
+	# Strip blank beginning and end space from equation
 	formula = formula.strip()
   
-  	# Split RHS of equation into variable list (context, action, interactions)
+	# Split RHS of equation into variable list (context, action, interactions)
 	vars_list = list(map(string.strip, formula.split('~')[1].strip().split('+')))
 
   
-  	# Add 1 for intercept in variable list if specified
+	# Add 1 for intercept in variable list if specified
 	if include_intercept:
 		vars_list.insert(0,1.)
 
- 	# Raise assertion error if variable list different length then coeff list
- 	#print(vars_list)
- 	#print(coef_list)
+	# Raise assertion error if variable list different length then coeff list
+	#print(vars_list)
+	#print(coef_list)
 	assert(len(vars_list) == len(coef_list))
 
-  	# Initialize outcome
+	# Initialize outcome
 	outcome = 0.
 
 	dummy_loops = 0
 	for k in range(20):
 		dummy_loops += 1
 	print(dummy_loops)
-  	
-  	print(str(type(coef_list)))
-  	print(np.shape(coef_list))
+
+	print(str(type(coef_list)))
+	print(np.shape(coef_list))
 	coef_list = coef_list.tolist()
 	print("coef list length: " + str(len(coef_list)))
 	print("vars list length: " + str(len(vars_list)))
-  	print("vars_list " + str(vars_list))
-  	print("curr_coefs " + str(coef_list))
+	print("vars_list " + str(vars_list))
+	print("curr_coefs " + str(coef_list))
 
-  	## Use variables and coeff list to compute expected reward
-  	# Itterate over all (var, coeff) pairs from regresion model
-  	num_loops = 0
+	## Use variables and coeff list to compute expected reward
+	# Itterate over all (var, coeff) pairs from regresion model
+	num_loops = 0
 	for j in range(len(coef_list)): #var, coef in zip(vars_list,coef_list):
 		var = vars_list[j]
 		coef = coef_list[j]
@@ -556,10 +556,10 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 		elif '*' in var:
 			interacting_vars = var.split('*')
 			interacting_vars = list(map(string.strip,interacting_vars))
-	  		# Product of variable values in interaction term
+			# Product of variable values in interaction term
 			for i in range(0, len(interacting_vars)):
 				value *= var_dict[interacting_vars[i]]
-	    
+
 		# Action or context value
 		else:
 			value = var_dict[var]
@@ -580,27 +580,27 @@ def is_valid_action(action):
 	checks whether an action is valid, meaning, no more than one vars under same category are assigned 1
 	'''
   
-  	# Obtain labels for each action
+	# Obtain labels for each action
 	keys = action.keys()
   
-  	# Itterate over each action label
+	# Itterate over each action label
 	for cur_key in keys:
-    
-    		# Find the action labels with multiple levels
+
+			# Find the action labels with multiple levels
 		if '_' not in cur_key:
 			continue
 		value = 0
 		prefix = cur_key.rsplit('_',1)[0] + '_'
-    
-    		# Compute sum of action variable with multiple levels
+
+			# Compute sum of action variable with multiple levels
 		for key in keys:
 			if key.startswith(prefix):
 				value += action[key]
-    		# Action not feasible if sum of indicators is more than 1    
+			# Action not feasible if sum of indicators is more than 1
 		if value > 1:
 			return False
 
-  	# Return true if action is valid
+	# Return true if action is valid
 	return True
 
 
@@ -660,8 +660,8 @@ def posteriors(y, X, m_pre, V_pre, a1_pre, a2_pre):
   # Return posterior drawn parameters
   # output: [(betas, s^2, a1, a2), V]
   return{"coef_mean": m_post, 
-  		"coef_cov": V_post,
-  		"variance_a": a1_post,
-  		"variance_b": a2_post}
+		"coef_cov": V_post,
+		"variance_a": a1_post,
+		"variance_b": a2_post}
 
   #return [np.append(np.append(beta_s2, a1_post), a2_post), V_post]

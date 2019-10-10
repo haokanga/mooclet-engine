@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.urls import reverse
 from django.shortcuts import redirect
-import policies
+from . import policies
 from django.http import Http404
 from django.utils import timezone
 
@@ -50,7 +50,7 @@ class Version(models.Model):
     '''
     
     name = models.CharField(max_length=200,default='')
-    mooclet = models.ForeignKey(Mooclet)
+    mooclet = models.ForeignKey(Mooclet,on_delete=models.SET_NULL)
     text = models.TextField(blank=True,default='')
     version_id = models.PositiveIntegerField(blank=True,null=True)
     # mooclet_version_id = models.PositiveIntegerField(blank=True)
@@ -120,7 +120,7 @@ class Value(models.Model):
         mooclet: ?
         version: student rating of an explanation, instructors prior judgement
     '''
-    variable = models.ForeignKey(Variable)
+    variable = models.ForeignKey(Variable,on_delete=models.SET_NULL)
 
     learner = models.ForeignKey(Learner,null=True,blank=True, on_delete=models.SET_NULL)
     mooclet = models.ForeignKey(Mooclet,null=True,blank=True, on_delete=models.SET_NULL)
@@ -167,7 +167,7 @@ class Policy(models.Model):
         try:
             return getattr(policies, self.name)
         except:
-            print "policy function matching specified name not found"
+            print ("policy function matching specified name not found")
             # TODO look through custom user-provided functions
             return None
 
@@ -196,8 +196,8 @@ class Policy(models.Model):
         return version
 
 class PolicyParameters(models.Model):
-    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None)
-    policy = models.ForeignKey(Policy)
+    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     latest_update = models.DateTimeField(null=True, blank=True)
@@ -210,8 +210,8 @@ class PolicyParameters(models.Model):
         return "{} {}".format(self.__class__.__name__, self.pk)
 
 class PolicyParametersHistory(models.Model):
-    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None)
-    policy = models.ForeignKey(Policy)
+    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     creation_time = models.DateTimeField(null=True, blank=True, auto_now_add=True)

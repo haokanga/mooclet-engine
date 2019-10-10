@@ -35,7 +35,7 @@ class OnTaskWorkflow(models.Model):
 		return str(self.workflow_id)
 
 class QualtricsOnTaskDataExchange(AbstractDataExchange):
-	data_input = models.ForeignKey('QualtricsSurvey')
-	data_output = models.ForeignKey('OnTaskWorkflow')
+	data_input = models.ForeignKey('QualtricsSurvey',on_delete=models.SET_NULL)
+	data_output = models.ForeignKey('OnTaskWorkflow',on_delete=models.SET_NULL)
 	shared_variables = models.ManyToManyField(Variable, blank=True)
 	mooclets = models.ManyToManyField(Mooclet, blank=True)

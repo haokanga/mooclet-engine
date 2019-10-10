@@ -134,7 +134,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
 
         else:
             curr_user_values[value.variable.name] = value.value
-        print curr_user_values
+        print (curr_user_values)
     else:
         try:
             vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
