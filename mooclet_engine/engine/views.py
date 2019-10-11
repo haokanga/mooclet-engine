@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_pandas import PandasView
 from .models import *
 from .serializers import *
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action, list_route
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 import pandas as pd
@@ -29,11 +29,11 @@ class MoocletViewSet(viewsets.ModelViewSet):
     #lookup_field = 'name'
     search_fields = ('name',)
 
-    @detail_route()
+    @action(detail=True)
     def test(self, request, pk=None):
         return Response({'test':'hi'})
 
-    @detail_route()
+    @action(detail=True)
     def run(self, request, pk=None):
         policy = request.GET.get('policy',None)
         context = {}
