@@ -83,8 +83,15 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+
+    # the next MIDDLWARE_CLASSES item had to be taken off due to the following bug in runserver
+    # AttributeError: module 'django.contrib.auth.middleware' has no attribute 'SessionAuthenticationMiddleware'
+    # the above error was a direct cause of the following error
+    # ImportError: Module "django.contrib.auth.middleware" does not define a "SessionAuthenticationMiddleware" attribute/class
+    # django.core.exceptions.ImproperlyConfigured: WSGI application 'mooclet_engine.wsgi.application' could not be loaded; Error importing module.
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+
     'django.middleware.common.BrokenLinkEmailsMiddleware',
 )
 
