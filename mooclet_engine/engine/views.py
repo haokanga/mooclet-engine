@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_pandas import PandasView
 from .models import *
 from .serializers import *
-from rest_framework.decorators import action, list_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 import pandas as pd
