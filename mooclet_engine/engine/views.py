@@ -109,7 +109,7 @@ class ValueViewSet(viewsets.ModelViewSet):
     search_fields = ('learner__name', 'variable__name',)
     ordering_fields = ('timestamp','learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
 
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def create_many(self, request, pk=None):
         queryset = Value.objects.all()
         serializer = ValueSerializer(many=True, data=request.data)
@@ -119,7 +119,7 @@ class ValueViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error':'invalid'}, status=500)
 
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def create_many_fromobj(self, request, pk=None):
         queryset = Value.objects.all()
         print("Data:")
