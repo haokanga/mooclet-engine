@@ -6,6 +6,8 @@ RENAME THIS FILE TO secure.py
 Note - the .gitignore file is setup to exclude secure.py
 from git. secure.py should never be put under version control.
 
+Keep this file in the root directory, i.e. in /mooclet-engine
+
 '''
 
 '''
