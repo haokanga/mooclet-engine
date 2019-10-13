@@ -8,12 +8,32 @@ from git. secure.py should never be put under version control.
 
 '''
 
+'''
+THIS FILE IS AN EXAMPLE ONLY!
+NONE OF THE SETTINGS IN THIS FILE WILL WORK OUT OF THE BOX
+RENAME THIS FILE TO secure.py
+
+Note - the .gitignore file is setup to exclude secure.py
+from git. secure.py should never be put under version control.
+
+'''
+
 import os
 
 os.environ.setdefault('ENV_TYPE', 'test')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + '/mooclet_engine/mooclet_engine'
 
 # django secret key
-SECRET_KEY = "",
+# SECRET_KEY = definesomesecretkeyhere
+
+LOCAL_DATABASE = {
+    'dev': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3')
+    }
+}
+
+LOCAL_CELERY_BROKER_URL = None
 
 MOOCLET_URL_BASE = {
     'local': 'http://localhost:8000/moocletengine/api',
