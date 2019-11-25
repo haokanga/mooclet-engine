@@ -78,7 +78,8 @@ def thompson_sampling(variables,context):
     #   'policy_parameters':
     #       {
     #       'outcome_variable_name':<name of the outcome variable',
-    #       'prior':
+    #       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
     #           {'success':<prior success value>},
     #           {'failure':<prior failure value>},
     #       }
@@ -88,7 +89,7 @@ def thompson_sampling(variables,context):
 	prior_failure = context['policy_parameters']['prior']['failure']
 	outcome_variable_name = context['policy_parameters']['outcome_variable_name']
 	#max value of version rating, from qualtrics
-	max_rating = 10
+	max_rating = context['policy_parameters']['max_rating']
 
 	version_to_show = None
 	max_beta = 0
@@ -98,8 +99,6 @@ def thompson_sampling(variables,context):
         # student_ratings is a pandas.core.series.Series variable
 		rating_count = student_ratings.count()
 		rating_average = student_ratings.aggregate(Avg('value'))
-        # TODO : Find out where this value__avg coming from,
-        #  doesnt look to be a series attribute
 		rating_average = rating_average['value__avg']
 		if rating_average is None:
 			rating_average = 0
