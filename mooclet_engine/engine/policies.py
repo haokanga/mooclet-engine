@@ -71,16 +71,32 @@ def thompson_sampling(variables,context):
 	Version = apps.get_model('engine', 'Version')
 	# version_content_type = ContentType.objects.get_for_model(Version)
 	#priors we set by hand - will use instructor rating and confidence in future
-	prior_success = 19
-	prior_failure = 1
+	# TODO : all explanations are having the same prior.
+
+    # context is the following json :
+    #   {
+    #   'policy_parameters':
+    #       {
+    #       'outcome_variable_name':<name of the outcome variable',
+    #       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+    #           {'success':<prior success value>},
+    #           {'failure':<prior failure value>},
+    #       }
+    #   }
+	prior_success = context['policy_parameters']['prior']['success']
+
+	prior_failure = context['policy_parameters']['prior']['failure']
+	outcome_variable_name = context['policy_parameters']['outcome_variable_name']
 	#max value of version rating, from qualtrics
-	max_rating = 10
+	max_rating = context['policy_parameters']['max_rating']
 
 	version_to_show = None
 	max_beta = 0
 
 	for version in versions:
-		student_ratings = Variable.objects.get(name='student_rating').get_data({'version': version}).all()
+		student_ratings = Variable.objects.get(name=outcome_variable_name).get_data({'version': version}).all()
+        # student_ratings is a pandas.core.series.Series variable
 		rating_count = student_ratings.count()
 		rating_average = student_ratings.aggregate(Avg('value'))
 		rating_average = rating_average['value__avg']
