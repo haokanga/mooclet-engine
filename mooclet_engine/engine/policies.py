@@ -32,6 +32,41 @@ def uniform_random_time(variables,context):
 		version_dict['text'] = dtiso + ' ' + version_dict['text'] 
 	return version_dict
 
+def choose_policy_group(variables, context):
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	Policy = apps.get_model('engine', 'Policy')
+
+	var_name = str(context["mooclet"])+"_choose_policy_group"
+	grp_var, created = Variable.objects.get_or_create(name=var_name)
+
+	if "learner" not in context:
+		return {"error": "please provide a learner ID"}
+	else:
+		if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+			print("found prior policy")
+			user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+			user_group = user_grp.text
+			print("prior policy: " + user_group)
+			user_policy = Policy.objects.get(name=user_group)
+			return user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"]})
+		else:
+			print("selecting policy")
+			policy_parameters = context["policy_parameters"].parameters
+			policy_options = policy_parameters["policy_options"]
+			print("options:")
+			print(policy_options)
+			policies = []
+			weights = []
+			for k, v in policy_options.iteritems():
+				policies.append(k)
+				weights.append(v)
+			chosen_policy = choice(policies, p=weights)
+			print("chosen policy: " + chosen_policy)
+			Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
+			usr_policy = Policy.objects.get(name=chosen_policy)
+			return usr_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"]})
 
 
 def weighted_random(variables,context):
@@ -97,9 +132,9 @@ def thompson_sampling(variables,context):
 	max_beta = 0
 
 	for version in versions:
-		student_ratings = Variable.objects.get(name=outcome_variable_name).get_data({'version': version})
+		student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
 		if student_ratings:
-			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data({'version': version}).all()
+			student_ratings = student_ratings.all()
 		    # student_ratings is a pandas.core.series.Series variable
 			rating_count = student_ratings.count()
 			rating_average = student_ratings.aggregate(Avg('value'))
