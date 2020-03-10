@@ -73,5 +73,21 @@
       "name": "if_then_rules_time",
       "policy_id": 11
     }
+  },
+       {
+    "model": "engine.policy",
+    "pk": 12,
+    "fields": {
+      "name": "choose_policy_group",
+      "policy_id": 12
+    }
+  },
+  {
+    "model": "engine.policy",
+    "pk": 13,
+    "fields": {
+      "name": "thompson_sampling_contextual_group",
+      "policy_id": 13
+    }
   }
 ]  
