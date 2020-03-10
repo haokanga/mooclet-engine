@@ -554,6 +554,118 @@ def thompson_sampling_contextual(variables, context):
 	#version_to_show = {}
 	return version_to_show
 
+# Draw thompson sample of (reg. coeff., variance) and also select the optimal action
+def thompson_sampling_contextual_group(variables, context):
+	'''
+	thompson sampling policy with contextual information.
+	Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
+	map dict to version
+	get the current user's context as a dict
+	'''
+
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+  	# Store normal-inverse-gamma parameters
+	policy_parameters = context['policy_parameters']
+	parameters = policy_parameters.parameters
+  
+  	# Store regression equation string
+	regression_formula = parameters['regression_formula']
+  
+	# Action space, assumed to be a json
+	action_space = parameters['action_space']
+  
+  	# Include intercept can be true or false
+	include_intercept = parameters['include_intercept']
+  
+  	# Store contextual variables
+	contextual_vars = parameters['contextual_variables']
+	if 'learner' not in context:
+		pass
+	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
+	contextual_vars_dict = {}
+	for val in contextual_vars:
+		contextual_vars_dict[val.variable.name] = val.value
+	contextual_vars = contextual_vars_dict
+	print('contextual vars: ' + str(contextual_vars))
+
+	# Get current priors parameters (normal-inverse-gamma)
+	mean = parameters['coef_mean']
+	cov = parameters['coef_cov']
+	variance_a = parameters['variance_a']
+	variance_b = parameters['variance_b']
+	print('prior mean: ' + str(mean))
+	print('prior cov: ' + str(cov))
+  	# Draw variance of errors
+	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
+  
+  	# Draw regression coefficients according to priors
+	coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
+	print('sampled coeffs: ' + str(coef_draw))
+
+	## Generate all possible action combinations
+  	# Initialize action set
+	all_possible_actions = [{}]
+  
+  	# Itterate over actions label names
+	for cur in action_space:
+    
+    		# Store set values corresponding to action labels
+		cur_options = action_space[cur]
+    
+    		# Initialize list of feasible actions
+		new_possible = []
+    
+    		# Itterate over action set
+		for a in all_possible_actions:
+      
+      			# Itterate over value sets correspdong to action labels
+			for cur_a in cur_options:
+				new_a = a.copy()
+				new_a[cur] = cur_a
+        
+        			# Check if action assignment is feasible
+				if is_valid_action(new_a):
+          
+          				# Append feasible action to list
+					new_possible.append(new_a)
+					all_possible_actions = new_possible
+
+  	# Print entire action set
+	print('all possible actions: ' + str(all_possible_actions))
+
+	## Calculate outcome for each action and find the best action
+	best_outcome = -np.inf
+	best_action = None
+  
+  	print('regression formula: ' + regression_formula)
+  	# Itterate of all feasible actions
+	for action in all_possible_actions:
+		independent_vars = action.copy()
+		independent_vars.update(contextual_vars)
+		print('independent vars: ' + str(independent_vars))
+		# Compute expected reward given action
+		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
+		print("curr_outcome" + str(outcome))
+		print('outcome: ' + str(best_outcome))
+		# Keep track of optimal (action, outcome)
+		if best_action is None or outcome > best_outcome:
+			best_outcome = outcome
+			best_action = action
+
+  	# Print optimal action
+	print('best action: ' + str(best_action))
+	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
+
+	version_to_show = version_to_show.filter(version_json__contains=best_action)
+
+	version_to_show = choice(version_to_show)
+
+	#TODO: convert best action into version
+	#version_to_show = {}
+	return version_to_show
+
 # Compute expected reward given context and action of user
 # Inputs: (design matrix row as dict, coeff. vector, intercept, reg. eqn.)
 def calculate_outcome(var_dict, coef_list, include_intercept, formula):
