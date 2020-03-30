@@ -99,6 +99,8 @@ class Variable(models.Model):
                 values = self.value_set.filter(version__in=context['mooclet'].version_set.all())
                 if 'version' in context:
                     values = values.filter(version=context['version'])
+                if 'policy' in context:
+                    values = values.filter(policy__name=context["policy"])
                 return values
         else:
             return self.value_set.all()

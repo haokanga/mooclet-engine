@@ -50,7 +50,11 @@ def choose_policy_group(variables, context):
 			user_group = user_grp.text
 			print("prior policy: " + user_group)
 			user_policy = Policy.objects.get(name=user_group)
-			return user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"]})
+			version = user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"],  "used_choose_group": True})
+			version_dict = model_to_dict(version)
+			version_dict["policy"] = user_group
+			version_dict["policy_id"] = user_policy.id
+			return version_dict
 		else:
 			print("selecting policy")
 			policy_parameters = context["policy_parameters"].parameters
@@ -66,7 +70,11 @@ def choose_policy_group(variables, context):
 			print("chosen policy: " + chosen_policy)
 			Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
 			usr_policy = Policy.objects.get(name=chosen_policy)
-			return usr_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"]})
+			version =  usr_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"], "used_choose_group": True})
+			version_dict = model_to_dict(version)
+			version_dict["policy"] = chosen_policy
+			version_dict["policy_id"] = usr_policy.id
+			return version_dict
 
 
 def weighted_random(variables,context):
@@ -132,7 +140,10 @@ def thompson_sampling(variables,context):
 	max_beta = 0
 
 	for version in versions:
-		student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+		if "used_choose_group" in context and context["used_choose_group"] == True:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'thompson_sampling'})
+		else:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
 		if student_ratings:
 			student_ratings = student_ratings.all()
 		    # student_ratings is a pandas.core.series.Series variable
@@ -171,7 +182,8 @@ def thompson_sampling(variables,context):
 		#TODO - log to db later?
 		successes = (rating_average * rating_count) + prior_success
 		failures = (max_rating * rating_count) - (rating_average * rating_count) + prior_failure
-
+		print("successes: " + str(successes))
+		print("failures: " + str(failures))
 		version_beta = beta(successes, failures)
 
 		if version_beta > max_beta:
