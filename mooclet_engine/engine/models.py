@@ -209,7 +209,7 @@ class PolicyParameters(models.Model):
         unique_together = ('mooclet', 'policy')
 
     def __unicode__(self):
-        return "{} {}".format(self.__class__.__name__, self.pk)
+        return "{}, Policy: {}".format(self.mooclet, self.policy)
 
 class PolicyParametersHistory(models.Model):
     mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None)
@@ -224,7 +224,7 @@ class PolicyParametersHistory(models.Model):
         #unique_together = ()
 
     def __unicode__(self):
-        return "{} {}".format(self.__class__.__name__, self.pk)
+        return "{}, Policy: {}, created: {}".format(self.mooclet, self.policy, self.creation_time)
 
     @classmethod
     def create_from_params(cls, params):
