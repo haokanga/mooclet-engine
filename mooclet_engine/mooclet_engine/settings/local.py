@@ -3,11 +3,11 @@ import os
 # os.environ.setdefault('ENV_TYPE', 'local')
 
 from .base import *
-import secure
+from . import secure
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # INSTALLED_APPS += ('debug_toolbar', 'sslserver')
 
@@ -21,7 +21,7 @@ ALLOWED_HOSTS = []
 # }
 
 DATABASES = {
-    'default': secure.LOCAL_DATABASE['dev'],
+    'default': secure.LOCAL_DATABASE['moocletenginenus'],
 }
 
 # For Django Debug Toolbar:
@@ -32,12 +32,12 @@ INTERNAL_IPS = ('127.0.0.1', '10.0.2.2',)
 # }
 
 
-# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATIC_URL = '/static/'
-# STATIC_ROOT = normpath(join(SITE_ROOT, 'http_static'))
+STATIC_ROOT = normpath(join(SITE_ROOT, 'static'))
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
 
 #CELERY
-CELERY_BROKER_URL = secure.LOCAL_CELERY_BROKER_URL
+#CELERY_BROKER_URL = secure.LOCAL_CELERY_BROKER_URL

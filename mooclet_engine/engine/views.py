@@ -11,18 +11,7 @@ import json
 # rest framework viewsets
 
 class MoocletViewSet(viewsets.ModelViewSet):
-    """
-    MOOClets are the building blocks of experiments/RCTs via web service.
-
-    retrieve:
-        Return the given MOOClet.
-
-    list:
-        Return a list of all the existing MOOClets.
-
-    create:
-        Create a new MOOClet instance.
-    """
+    
 
     queryset = Mooclet.objects.all()
     serializer_class = MoocletSerializer
@@ -54,7 +43,8 @@ class MoocletViewSet(viewsets.ModelViewSet):
         else:
             version_id = version.id
             version_name = version.name
-            serialized_version = VersionSerializer(version).data
+            serialized_version = VersionSerializer(version).data#.save()
+            #serialized_version = serialized_version.data
 
         version_shown = Value( 
                             learner=learner,
@@ -125,7 +115,7 @@ class ValueViewSet(viewsets.ModelViewSet):
         print("Data:")
         print(request.data)
 
-        vals = request.data[request.data.keys()[0]]
+        vals = request.data[list(request.data.keys())[0]]
         try:
             vals = json.loads(vals)
         except:

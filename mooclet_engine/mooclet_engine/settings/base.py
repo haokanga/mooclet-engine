@@ -13,7 +13,7 @@ import os
 from os.path import abspath, basename, dirname, join, normpath
 from django.urls import reverse_lazy
 from sys import path
-import secure
+from . import secure
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 # BASE DIR refers to the directory containing manage.py
@@ -167,12 +167,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 # Additional locations of static files
-STATICFILES_DIRS = (
+#STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    normpath(join(SITE_ROOT, 'static')),
-)
+    #normpath(join(SITE_ROOT, 'static')),
+#)
+
+STATIC_URL = '/static/'
 
 #### django-bootstrap ####
 BOOTSTRAP3 = {
