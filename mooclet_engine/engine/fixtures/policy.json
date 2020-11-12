@@ -89,5 +89,37 @@
       "name": "thompson_sampling_contextual_group",
       "policy_id": 13
     }
+  },
+    {
+    "model": "engine.policy",
+    "pk": 14,
+    "fields": {
+      "name": "thompson_sampling_postdiff",
+      "policy_id": 14
+    }
+  },
+    {
+    "model": "engine.policy",
+    "pk": 15,
+    "fields": {
+      "name": "thompson_sampling_uniform_start",
+      "policy_id": 15
+    }
+  },
+  {
+    "model": "engine.policy",
+    "pk": 16,
+    "fields": {
+      "name": "thompson_sampling_batched",
+      "policy_id": 16
+    }
+  },
+    {
+    "model": "engine.policy",
+    "pk": 17,
+    "fields": {
+      "name": "ts_configurable",
+      "policy_id": 17
+    }
   }
 ]  
