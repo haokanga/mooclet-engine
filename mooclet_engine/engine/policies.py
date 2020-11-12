@@ -1346,8 +1346,8 @@ def ts_sample(versions_dict, context):
 	Value.objects.create(variable=ur_or_ts, value=1.0, 
 							text="TS_NONPOSTDIFF", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
-		version_dict = model_to_dict(version_to_show)
-		version_dict["selection_method"] = "ts_nonpostdiff"
+	version_dict = model_to_dict(version_to_show)
+	version_dict["selection_method"] = "ts_nonpostdiff"
 	#version_to_show = Version.objects.get(id=version_to_show)
 	return version_to_show
 
