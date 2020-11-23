@@ -936,7 +936,7 @@ def thompson_sampling_postdiff(variables,context):
 	#log whether was chosen by ts or ur
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 
-	if diff <= tspostdiff_thresh:# do UR
+	if diff < tspostdiff_thresh:# do UR
 		print("choices to show")
 		print(context['mooclet'].version_set.all())
 		version_to_show = choice(context['mooclet'].version_set.all())
@@ -1288,7 +1288,7 @@ def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
 	#log whether was chosen by ts or ur
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 
-	if diff <= tspostdiff_thresh:# do UR
+	if diff < tspostdiff_thresh:# do UR
 		#print("choices to show")
 		#print(context['mooclet'].version_set.all())
 		version_to_show = choice(versions_dict.keys())
