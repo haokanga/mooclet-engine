@@ -1330,6 +1330,8 @@ def ts_sample(versions_dict, context):
 	{version1: {successess: 1, failures: 1}.
 	version2: {successess: 1, failures: 1}, ...}, and context
 	"""
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
 	Version = apps.get_model('engine', 'Version')
 	version_to_show = None
 	max_beta = 0
@@ -1342,6 +1344,8 @@ def ts_sample(versions_dict, context):
 		if version_beta > max_beta:
 			max_beta = version_beta
 			version_to_show = version
+
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 
 	Value.objects.create(variable=ur_or_ts, value=1.0, 
 							text="TS_NONPOSTDIFF", learner=context["learner"], mooclet=context["mooclet"],
