@@ -8,7 +8,7 @@ from .serializers import *
 import requests
 from rest_framework import viewsets
 #import data_settings.py
-import StringIO
+from io import StringIO
 import base64
 import pandas as pd
 
@@ -101,7 +101,7 @@ class OnTask():
         url = self.base_url + "table/" + str(self.workflow_id) + "/pops/"
         response = self.session.get(url, timeout=(self.connect_timeout, self.read_timeout))
         if response.status_code != 200:
-            print response
+            print(response)
             return response
         else:
             workflow_data = response.json()
@@ -110,7 +110,7 @@ class OnTask():
             output = StringIO.StringIO()
             output.write(base64.b64decode(workflow_data))
             result_df = pd.read_pickle(output)
-            print result_df
+            print(result_df)
             return result_df
 
 

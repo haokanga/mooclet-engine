@@ -56,7 +56,7 @@ def create_design_matrix(input_df, formula, add_intercept = True):
     all_vars_str = formula.split('~')[1].strip()
     dependent_var = formula.split('~')[0].strip()
     vars_list = all_vars_str.split('+')
-    vars_list = list(map(string.strip, vars_list))
+    vars_list = list(map(str.strip, vars_list))
 
     ''''#sanity check to ensure each var used in
     for var in vars_list:
@@ -67,7 +67,7 @@ def create_design_matrix(input_df, formula, add_intercept = True):
     for var in vars_list:
         if '*' in var:
             interacting_vars = var.split('*')
-            interacting_vars = list(map(string.strip,interacting_vars))
+            interacting_vars = list(map(str.strip,interacting_vars))
             D_df[var] = input_df[interacting_vars[0]]
             for i in range(1, len(interacting_vars)):
                 D_df[var] *= input_df[interacting_vars[i]]

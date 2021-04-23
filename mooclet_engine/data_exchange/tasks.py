@@ -8,7 +8,7 @@ from django.utils import timezone
 import tempfile
 import zipfile
 import os
-import StringIO
+from io import StringIO
 import base64
 import hashlib
 import datetime
@@ -52,26 +52,26 @@ def get_qualtrics_data(self, **kwargs):
 							  "surveyId": survey_id}
 	if last_export_date:
 		last_export_date = last_export_date.isoformat()
-		print last_export_date
+		print(last_export_date)
 		downloadRequestPayload["startDate"] = last_export_date
 
 	if last_respondent:
 		downloadRequestPayload["lastResponseId"] = last_respondent
 
 	downloadRequestPayload = json.dumps(downloadRequestPayload)
-	print downloadRequestPayload
+	print(downloadRequestPayload)
 	#req='{"format":"' + file_format + '","surveyId":"' + survey_id + '","lastResponseId":"' + last_respondent + '"}'
 	downloadRequestResponse = requests.request("POST", downloadRequestUrl, data=downloadRequestPayload, headers=headers)
-	print downloadRequestResponse.json()
+	print(downloadRequestResponse.json())
 	progressId = downloadRequestResponse.json()["result"]["id"]
-	print downloadRequestResponse.text
+	print(downloadRequestResponse.text)
 
 	# Step 2: Checking on Data Export Progress and waiting until export is ready
 	while requestCheckProgress < 100 and progressStatus is not "complete":
   		requestCheckUrl = baseUrl + progressId
   		requestCheckResponse = requests.request("GET", requestCheckUrl, headers=headers)
   		requestCheckProgress = requestCheckResponse.json()["result"]["percentComplete"]
-  		print "Download is " + str(requestCheckProgress) + " complete"
+  		print("Download is " + str(requestCheckProgress) + " complete")
 
 
 	# Step 3: Downloading file
@@ -91,7 +91,7 @@ def get_qualtrics_data(self, **kwargs):
 	#with open(unzipped, 'r') as f:
 		survey_data = json.load(f)
 
-	print survey_data
+	print(survey_data)
 	responses = survey_data["responses"]
 
 	for response in responses:
@@ -140,8 +140,8 @@ def update_workflow_data(self, **kwargs):
 	result_df = workflow_object.read()
 	
 
-	print result_df
-	print list(result_df)
+	print(result_df)
+	print(list(result_df))
 
 	#assume we have a field "email" storing emails
 	result_df['hashed_id'] = result_df['email'].apply(lambda x: hash_and_save(x))#['email']
@@ -152,51 +152,51 @@ def update_workflow_data(self, **kwargs):
 	# else:
 	# 	result_df['hashed_id'] = result_df.apply(lambda x: hash_and_save(x['email'], x['hashed_id']), axis=0)
 
-	print result_df
+	print(result_df)
 
 	if data_exchanges:
 		#mooclets = Mooclets.objects.all()
 		for data_exchange in data_exchanges:
 	 		mooclets = data_exchange.mooclets.all()
 	 		for mooclet in mooclets:
-	 			print "mooclet: " + mooclet.name
+	 			print("mooclet: " + mooclet.name)
 	 			if mooclet.name + "_version" not in result_df:
 	 				result_df[mooclet.name + "_version"] = ""
 	 			if mooclet.name + "_text" not in result_df:
 	 				result_df[mooclet.name + "_text"] = ""
 	 			result_df[[mooclet.name + "_version", mooclet.name + "_text"]] = result_df.apply(lambda x: run_version_if_none(x, mooclet), axis=1)
-	 	print result_df
 
+	print(result_df)
 
 	updated_workflow = workflow_object.update(result_df)
-	print updated_workflow
-	print updated_workflow.content
+	print(updated_workflow)
+	print(updated_workflow.content)
 
 	workflow_object.unlock()
 
 
 def run_version_if_none(row, mooclet):
 	learner, created = Learner.objects.get_or_create(name=row['hashed_id'])
-	print row
+	print(row)
 	if mooclet.name + '_version' not in row and mooclet.name + '_text' not in row:
-		print "no mooclet row"
+		print("no mooclet row")
 		version = mooclet.run(context={"learner":learner})
 		version_info = {mooclet.name + "_version": version.name, mooclet.name + "_text": version.text}
 		
-		print version_info
+		print(version_info)
 		version_info = pd.Series(version_info)
 		return version_info
 
 	elif not row[mooclet.name + "_version"] and not row[mooclet.name + "_text"]:
-		print "row but no values"
+		print("row but no values")
 		version = mooclet.run(context={"learner":learner})
 		version_info = {mooclet.name + "_version": version.name, mooclet.name + "_text": version.text}
-		print version_info
+		print(version_info)
 		version_info = pd.Series(version_info)
 		return version_info
 
 	else:
-		print "row and value"
+		print("row and value")
 		return row[mooclet.name + "_version"], row[mooclet.name + "_text"]
 
 

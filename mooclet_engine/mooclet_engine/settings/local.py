@@ -21,7 +21,7 @@ ALLOWED_HOSTS = ['*']
 # }
 
 DATABASES = {
-    'default': secure.LOCAL_DATABASE['moocletenginenus'],
+    'default': secure.LOCAL_DATABASE['dev'],
 }
 
 # For Django Debug Toolbar:
