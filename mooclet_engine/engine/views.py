@@ -50,10 +50,13 @@ class MoocletViewSet(viewsets.ModelViewSet):
                             learner=learner,
                             variable=Version,
                             mooclet=self.get_object(),
+                            policy=self.get_object().policy,
                             version_id=version_id,
                             value=version_id,
                             text=version_name
                             )
+        if "policy_id" in serialized_version:
+            version_shown.policy = Policy.objects.get(id=serialized_version["policy_id"])
         version_shown.save()
         return Response(serialized_version)
 

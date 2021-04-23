@@ -14,9 +14,9 @@ import hashlib
 import datetime
 try: import simplejson as json
 except ImportError: import json
-from mooclet_engine.settings.secure import QUALTRICS_API_TOKEN, QUALTRICS_DATA_CENTER, QUALTRICS_DEFAULT_FILE_FORMAT, ONTASK_API_USER, ONTASK_API_PW
-from .models import *
+#from mooclet_engine.settings.secure import QUALTRICS_API_TOKEN, QUALTRICS_DATA_CENTER, QUALTRICS_DEFAULT_FILE_FORMAT, ONTASK_API_USER, ONTASK_API_PW
 from engine.models import *
+#from engine.models import *
 from .utils import OnTask
 from engine.utils.utils import *
 from engine.policies import *
@@ -217,6 +217,7 @@ def hash_and_save(email, hashed=None):
 
 @shared_task
 def update_model(self, **kwargs):
+	print("starting")
 	mooclet = Mooclet.objects.get(pk=kwargs["mooclet"])
 	policy = Policy.objects.get(pk=kwargs["policy"])
 	params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
@@ -230,13 +231,15 @@ def update_model(self, **kwargs):
 	variance_b = parameters['variance_b']
 	latest_update = params.latest_update
 	values = values_to_df(mooclet, params, latest_update)
+	#print(values)
 	
 	if not values.empty:
 		print("has new values!")
+		print(len(values))
 		new_history = PolicyParametersHistory.create_from_params(params)
-		new_update_time = datetime.datetime.now()
-		params.latest_update = new_update_time
-		params.save()
+		new_history.parameters["update_size"] = len(values)
+		new_history.save()
+		
 		rewards = values[parameters['outcome_variable']]
 		values = values.drop(["user_id", parameters['outcome_variable']], axis=1)
 
@@ -249,11 +252,36 @@ def update_model(self, **kwargs):
 		params.parameters['coef_cov'] = posterior_vals["coef_cov"].tolist()
 		params.parameters['variance_a'] = posterior_vals["variance_a"]
 		params.parameters['variance_b'] = posterior_vals["variance_b"]
+		new_update_time = datetime.datetime.now()
+		params.latest_update = new_update_time
 		params.save()
 
 
 
 
 
+@shared_task
+def goodlife_outcome(self,**kwargs):
+	mooclet = Mooclet.objects.get(pk=kwargs["mooclet"])
+	learners = Learner.objects.filter(environment__id=2)
+	group_var = str(mooclet)+"_choose_policy_group"
+	outcome_var, created = Variable.objects.get_or_create(name="gl_outcome")
+	for learner in learners:
+		policy_enrolled = Value.objects.filter(variable__name=group_var, learner=learner)
+		if policy_enrolled and policy_enrolled.text == "thompson_sampling_contextual":
+			outcome = 0
+			#calculate outcome
+			last_version_sent  = Value.objects.filter(variable__name="version", learner=learner, mooclet=mooclet).first()
+			most_recent_checkin = Value.objects.filter(variable__name="gl_checkin", learner=learner).first()
+			if most_recent_checkin.timestamp > last_version_sent.timestamp:
+				outcome += 20
 
+			version_rating = Value.objects.filter(variable__name="gl_sms_response", learner=learner, mooclet=mooclet, version=last_version_sent.version).first()
+			if version_rating and version_rating.timestamp > last_version_sent.timestamp:
+				outcome += version_rating.value
+			else:
+				outcome += 4
+			db_outcome = Value.objects.create(variable=outcome_var, learner=learner, mooclet=mooclet, version=last_version_sent.version, value=outcome)
 
+# def check_batch_size(policyparameters):
+# 	if policy

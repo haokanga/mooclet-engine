@@ -32,6 +32,55 @@ def uniform_random_time(variables,context):
 		version_dict['text'] = dtiso + ' ' + version_dict['text'] 
 	return version_dict
 
+def choose_policy_group(variables, context):
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	Policy = apps.get_model('engine', 'Policy')
+
+	var_name = str(context["mooclet"])+"_choose_policy_group"
+	grp_var, created = Variable.objects.get_or_create(name=var_name)
+
+	if "learner" not in context:
+		return {"error": "please provide a learner ID"}
+	else:
+		if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+			print("found prior policy")
+			user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+			user_group = user_grp.text
+			print("prior policy: " + user_group)
+			user_policy = Policy.objects.get(name=user_group)
+			version = user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"],  "used_choose_group": True})
+			if type(version) != dict:
+				version_dict = model_to_dict(version)
+			else:
+				version_dict = version
+			version_dict["policy"] = user_group
+			version_dict["policy_id"] = user_policy.id
+			return version_dict
+		else:
+			print("selecting policy")
+			policy_parameters = context["policy_parameters"].parameters
+			policy_options = policy_parameters["policy_options"]
+			print("options:")
+			print(policy_options)
+			policies = []
+			weights = []
+			for k, v in policy_options.iteritems():
+				policies.append(k)
+				weights.append(v)
+			chosen_policy = choice(policies, p=weights)
+			print("chosen policy: " + chosen_policy)
+			Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
+			usr_policy = Policy.objects.get(name=chosen_policy)
+			version =  usr_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"], "used_choose_group": True})
+			if type(version) != dict:
+				version_dict = model_to_dict(version)
+			else:
+				version_dict = version
+			version_dict["policy"] = chosen_policy
+			version_dict["policy_id"] = usr_policy.id
+			return version_dict
 
 
 def weighted_random(variables,context):
@@ -71,23 +120,48 @@ def thompson_sampling(variables,context):
 	Version = apps.get_model('engine', 'Version')
 	# version_content_type = ContentType.objects.get_for_model(Version)
 	#priors we set by hand - will use instructor rating and confidence in future
-	prior_success = 19
-	prior_failure = 1
+	# TODO : all explanations are having the same prior.
+
+	# context is the following json :
+	#   {
+	#   'policy_parameters':
+	#       {
+	#       'outcome_variable_name':<name of the outcome variable',
+	#       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+	#           {'success':<prior success value>},
+	#           {'failure':<prior failure value>},
+	#       }
+	#   }
+	policy_parameters = context["policy_parameters"].parameters
+
+	prior_success = policy_parameters['prior']['success']
+
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
 	#max value of version rating, from qualtrics
-	max_rating = 10
+	max_rating = policy_parameters['max_rating']
 
 	version_to_show = None
 	max_beta = 0
 
 	for version in versions:
-		student_ratings = Variable.objects.get(name='student_rating').get_data({'version': version}).all()
-		rating_count = student_ratings.count()
-		rating_average = student_ratings.aggregate(Avg('value'))
-		rating_average = rating_average['value__avg']
-		if rating_average is None:
+		if "used_choose_group" in context and context["used_choose_group"] == True:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'thompson_sampling'})
+		else:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+		if student_ratings:
+			student_ratings = student_ratings.all()
+			# student_ratings is a pandas.core.series.Series variable
+			rating_count = student_ratings.count()
+			rating_average = student_ratings.aggregate(Avg('value'))
+			rating_average = rating_average['value__avg']
+			if rating_average is None:
+				rating_average = 0
+
+		else: 
 			rating_average = 0
-
-
+			rating_count = 0
 		#get instructor conf and use for priors later
 		#add priors to db
 		# prior_success_db, created = Variable.objects.get_or_create(name='thompson_prior_success')
@@ -114,7 +188,8 @@ def thompson_sampling(variables,context):
 		#TODO - log to db later?
 		successes = (rating_average * rating_count) + prior_success
 		failures = (max_rating * rating_count) - (rating_average * rating_count) + prior_failure
-
+		print("successes: " + str(successes))
+		print("failures: " + str(failures))
 		version_beta = beta(successes, failures)
 
 		if version_beta > max_beta:
@@ -443,24 +518,24 @@ def thompson_sampling_contextual(variables, context):
   
 	# Itterate over actions label names
 	for cur in action_space:
-
+	
 			# Store set values corresponding to action labels
 		cur_options = action_space[cur]
-
+	
 			# Initialize list of feasible actions
 		new_possible = []
-
+	
 			# Itterate over action set
 		for a in all_possible_actions:
-
+	  
 				# Itterate over value sets correspdong to action labels
 			for cur_a in cur_options:
 				new_a = a.copy()
 				new_a[cur] = cur_a
 
+		
 					# Check if action assignment is feasible
 				if is_valid_action(new_a):
-
 						# Append feasible action to list
 					new_possible.append(new_a)
 					all_possible_actions = new_possible
@@ -492,6 +567,118 @@ def thompson_sampling_contextual(variables, context):
 	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
 
 	version_to_show = version_to_show.get(version_json__contains=best_action)
+
+	#TODO: convert best action into version
+	#version_to_show = {}
+	return version_to_show
+
+# Draw thompson sample of (reg. coeff., variance) and also select the optimal action
+def thompson_sampling_contextual_group(variables, context):
+	'''
+	thompson sampling policy with contextual information.
+	Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
+	map dict to version
+	get the current user's context as a dict
+	'''
+
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	# Store normal-inverse-gamma parameters
+	policy_parameters = context['policy_parameters']
+	parameters = policy_parameters.parameters
+  
+	# Store regression equation string
+	regression_formula = parameters['regression_formula']
+  
+	# Action space, assumed to be a json
+	action_space = parameters['action_space']
+  
+	# Include intercept can be true or false
+	include_intercept = parameters['include_intercept']
+  
+	# Store contextual variables
+	contextual_vars = parameters['contextual_variables']
+	if 'learner' not in context:
+		pass
+	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
+	contextual_vars_dict = {}
+	for val in contextual_vars:
+		contextual_vars_dict[val.variable.name] = val.value
+	contextual_vars = contextual_vars_dict
+	print('contextual vars: ' + str(contextual_vars))
+
+	# Get current priors parameters (normal-inverse-gamma)
+	mean = parameters['coef_mean']
+	cov = parameters['coef_cov']
+	variance_a = parameters['variance_a']
+	variance_b = parameters['variance_b']
+	print('prior mean: ' + str(mean))
+	print('prior cov: ' + str(cov))
+	# Draw variance of errors
+	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
+  
+	# Draw regression coefficients according to priors
+	coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
+	print('sampled coeffs: ' + str(coef_draw))
+
+	## Generate all possible action combinations
+	# Initialize action set
+	all_possible_actions = [{}]
+  
+	# Itterate over actions label names
+	for cur in action_space:
+	
+			# Store set values corresponding to action labels
+		cur_options = action_space[cur]
+	
+			# Initialize list of feasible actions
+		new_possible = []
+	
+			# Itterate over action set
+		for a in all_possible_actions:
+	  
+				# Itterate over value sets correspdong to action labels
+			for cur_a in cur_options:
+				new_a = a.copy()
+				new_a[cur] = cur_a
+		
+					# Check if action assignment is feasible
+				if is_valid_action(new_a):
+		  
+						# Append feasible action to list
+					new_possible.append(new_a)
+					all_possible_actions = new_possible
+
+	# Print entire action set
+	print('all possible actions: ' + str(all_possible_actions))
+
+	## Calculate outcome for each action and find the best action
+	best_outcome = -np.inf
+	best_action = None
+  
+	print('regression formula: ' + regression_formula)
+	# Itterate of all feasible actions
+	for action in all_possible_actions:
+		independent_vars = action.copy()
+		independent_vars.update(contextual_vars)
+		print('independent vars: ' + str(independent_vars))
+		# Compute expected reward given action
+		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
+		print("curr_outcome" + str(outcome))
+		print('outcome: ' + str(best_outcome))
+		# Keep track of optimal (action, outcome)
+		if best_action is None or outcome > best_outcome:
+			best_outcome = outcome
+			best_action = action
+
+	# Print optimal action
+	print('best action: ' + str(best_action))
+	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
+
+	version_to_show = version_to_show.filter(version_json__contains=best_action)
+
+	version_to_show = choice(version_to_show)
 
 	#TODO: convert best action into version
 	#version_to_show = {}
@@ -555,11 +742,11 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 		# Interaction term value 
 		elif '*' in var:
 			interacting_vars = var.split('*')
+
 			interacting_vars = list(map(str.strip,interacting_vars))
 			# Product of variable values in interaction term
 			for i in range(0, len(interacting_vars)):
 				value *= var_dict[interacting_vars[i]]
-
 		# Action or context value
 		else:
 			value = var_dict[var]
@@ -665,3 +852,506 @@ def posteriors(y, X, m_pre, V_pre, a1_pre, a2_pre):
 		"variance_b": a2_post}
 
   #return [np.append(np.append(beta_s2, a1_post), a2_post), V_post]
+
+
+
+TSPOSTDIFF_THRESH = 0.15 # Threshold for TS PostDiff
+
+def thompson_sampling_postdiff(variables,context):
+	"""
+	Assumes only 2 versions
+	"""
+	versions = context['mooclet'].version_set.all()
+	print("versions")
+	print(versions)
+	#import models individually to avoid circular dependency
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	# version_content_type = ContentType.objects.get_for_model(Version)
+	#priors we set by hand - will use instructor rating and confidence in future
+	# TODO : all explanations are having the same prior.
+
+	# context is the following json :
+	#   {
+	#   'policy_parameters':
+	#       {
+	#       'outcome_variable_name':<name of the outcome variable',
+	#       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+	#           {'success':<prior success value>},
+	#           {'failure':<prior failure value>},
+	#       }
+	#   }
+	policy_parameters = context["policy_parameters"].parameters
+
+	prior_success = policy_parameters['prior']['success']
+
+	tspostdiff_thresh = policy_parameters["tspostdiff_thresh"]
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
+	#max value of version rating, from qualtrics
+	max_rating = policy_parameters['max_rating']
+
+	version_to_show = None
+	max_beta = 0
+	version_to_draw_dict = {} # {"version1": 0.5, "version2": 0.4}
+
+	for version in versions:
+		print(version.name)
+		if "used_choose_group" in context and context["used_choose_group"] == True:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'thompson_sampling_postdiff'})
+		else:
+			student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+		if student_ratings:
+			student_ratings = student_ratings.all()
+			# student_ratings is a pandas.core.series.Series variable
+			rating_count = student_ratings.count()
+			rating_average = student_ratings.aggregate(Avg('value'))
+			rating_average = rating_average['value__avg']
+			if rating_average is None:
+				rating_average = 0
+
+		else: 
+			rating_average = 0
+			rating_count = 0
+	
+		successes = (rating_average * rating_count) + prior_success
+		failures = (max_rating * rating_count) - (rating_average * rating_count) + prior_failure
+		print("successes: " + str(successes))
+		print("failures: " + str(failures))
+		#version_beta = beta(successes, failures) #Not used
+		version_to_draw_dict[version] = (successes, failures)
+		print(version_to_draw_dict)
+
+	 
+	#	if version_beta > max_beta:
+	#		max_beta = version_beta
+	#		version_to_show = version
+	version_beta_1 = beta(version_to_draw_dict.values()[0][0], version_to_draw_dict.values()[0][1])
+	version_beta_2 = beta(version_to_draw_dict.values()[1][0], version_to_draw_dict.values()[1][1])
+
+	diff = abs(version_beta_1 - version_beta_2)
+
+	#log whether was chosen by ts or ur
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+
+	if diff < tspostdiff_thresh:# do UR
+		print("choices to show")
+		print(context['mooclet'].version_set.all())
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0, 
+							text="UR", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random"
+		return version_dict
+
+	else: #Do TS with resampling
+		for version in version_to_draw_dict.keys():
+			successes = version_to_draw_dict[version][0]
+			failures = version_to_draw_dict[version][1]
+			version_beta = beta(successes, failures)
+			print("pre max beta: " +str(max_beta))
+			print("version_beta: " + str(version_beta))
+			if version_beta > max_beta:
+				max_beta = version_beta
+				version_to_show = version
+
+
+		#log policy chosen
+		Value.objects.create(variable=ur_or_ts, value=1.0, 
+							text="TS", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "thompson_sampling"
+		return version_dict
+
+
+def thompson_sampling_uniform_start(variables,context):
+	versions = context['mooclet'].version_set.all()
+	#import models individually to avoid circular dependency
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	# version_content_type = ContentType.objects.get_for_model(Version)
+	#priors we set by hand - will use instructor rating and confidence in future
+	# TODO : all explanations are having the same prior.
+
+	# context is the following json :
+	#   {
+	#   'policy_parameters':
+	#       {
+	#       'outcome_variable_name':<name of the outcome variable',
+	#       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+	#           {'success':<prior success value>},
+	#           {'failure':<prior failure value>},
+	#       }
+	#   }
+	policy_parameters = context["policy_parameters"].parameters
+
+	prior_success = policy_parameters['prior']['success']
+
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
+	#max value of version rating, from qualtrics
+	max_rating = policy_parameters['max_rating']
+
+	uniform_threshold = policy_parameters["uniform_threshold"]
+	n_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"], policy__name="thompson_sampling_uniform_start").count()
+
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+	if n_enrolled <= uniform_threshold:
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0, 
+							text="UR", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random"
+		return version_dict
+
+	else:
+		version_to_show = None
+		max_beta = 0
+
+		for version in versions:
+			if "used_choose_group" in context and context["used_choose_group"] == True:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'thompson_sampling_uniform_start'})
+			else:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+			if student_ratings:
+				student_ratings = student_ratings.all()
+				# student_ratings is a pandas.core.series.Series variable
+				rating_count = student_ratings.count()
+				rating_average = student_ratings.aggregate(Avg('value'))
+				rating_average = rating_average['value__avg']
+				if rating_average is None:
+					rating_average = 0
+
+			else: 
+				rating_average = 0
+				rating_count = 0
+			
+
+			#TODO - log to db later?
+			successes = (rating_average * rating_count) + prior_success
+			failures = (max_rating * rating_count) - (rating_average * rating_count) + prior_failure
+			print("successes: " + str(successes))
+			print("failures: " + str(failures))
+			version_beta = beta(successes, failures)
+
+			if version_beta > max_beta:
+				max_beta = version_beta
+				version_to_show = version
+
+		Value.objects.create(variable=ur_or_ts, value=1.0, 
+							text="TS", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "thompson_sampling"
+		return version_dict
+		#return version_to_show
+
+
+def thompson_sampling_batched(variables,context):
+	versions = context['mooclet'].version_set.all()
+	#import models individually to avoid circular dependency
+	#no problem if missing data is random, but could
+	#introduce bias if rewards are dont being sent is biased
+	#suppose the reason they don't send reward is because they hate it and close survey
+	#this skews for the subsequent batches. _could_ correct itself if we have the rewards come later
+	#but this is also a general problem
+	#note that using bernoulli for initial draws can be kind of problematic
+	#because it's noisy and can result in imbalanced initial distributions
+	#so we have more data about some arms than others
+	#so maybe we could for batch 1 do evenly distributed as much as possible?
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	PolicyParametersHistory = apps.get_model('engine', 'PolicyParametersHistory')
+	# version_content_type = ContentType.objects.get_for_model(Version)
+	#priors we set by hand - will use instructor rating and confidence in future
+	# TODO : all explanations are having the same prior.
+
+	# context is the following json :
+	#   {
+	#   'policy_parameters':
+	#       {
+	#       'outcome_variable_name':<name of the outcome variable',
+	#       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+	#           {'success':<prior success value>},
+	#           {'failure':<prior failure value>},
+	#       }
+	#   }
+	policy_parameters = context["policy_parameters"].parameters
+
+	prior_success = policy_parameters['prior']['success']
+
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
+	#max value of version rating, from qualtrics
+	max_rating = policy_parameters['max_rating']
+
+	batch_size = policy_parameters["batch_size"]
+	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"], policy__name="thompson_sampling_batched").count()
+
+	if "current_posteriors" not in policy_parameters or current_enrolled % batch_size == 0:
+		#update policyparameters
+		current_posteriors = {}
+		for version in versions:
+			if "used_choose_group" in context and context["used_choose_group"] == True:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'thompson_sampling_batched'})
+			else:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+			if student_ratings:
+				student_ratings = student_ratings.all()
+				# student_ratings is a pandas.core.series.Series variable
+				rating_count = student_ratings.count()
+				rating_average = student_ratings.aggregate(Avg('value'))
+				rating_average = rating_average['value__avg']
+				if rating_average is None:
+					rating_average = 0
+
+
+			else: 
+				rating_average = 0
+				rating_count = 0
+			
+
+			#TODO - log to db later?
+			successes = (rating_average * rating_count) 
+			failures = (max_rating * rating_count) - (rating_average * rating_count)
+			current_posteriors[version.id] = {"successes":successes, "failures": failures}
+		
+			
+		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
+		
+		new_history.save()
+		context["policy_parameters"].parameters["current_posteriors"] = current_posteriors
+		new_update_time = datetime.datetime.now()
+		context["policy_parameters"].latest_update = new_update_time
+		context["policy_parameters"].save()
+	else:
+		current_posteriors = policy_parameters["current_posteriors"]
+
+
+
+	version_to_show = None
+	max_beta = 0
+
+	for version in current_posteriors:
+		#one issue we have when analyzing data curerntly is we need to know how the updates are done
+
+		version_beta = beta(current_posteriors[version]["successes"] + prior_success, current_posteriors[version]["failures"] + prior_failure)
+
+		if version_beta > max_beta:
+			max_beta = version_beta
+			version_to_show = Version.objects.get(id=version)
+
+	# Value.objects.create(variable=ur_or_ts, value=1.0, 
+	# 					text="TS", learner=context["learner"], mooclet=context["mooclet"],
+	# 					version=version_to_show)
+	# version_dict = model_to_dict(version_to_show)
+	# version_dict["selection_method"] = "thompson_sampling"
+	return version_to_show
+		#return version_to_show
+
+def ts_configurable(variables, context):
+	versions = context['mooclet'].version_set.all()
+	#import models individually to avoid circular dependency
+	#no problem if missing data is random, but could
+	#introduce bias if rewards are dont being sent is biased
+	#suppose the reason they don't send reward is because they hate it and close survey
+	#this skews for the subsequent batches. _could_ correct itself if we have the rewards come later
+	#but this is also a general problem
+	#note that using bernoulli for initial draws can be kind of problematic
+	#because it's noisy and can result in imbalanced initial distributions
+	#so we have more data about some arms than others
+	#so maybe we could for batch 1 do evenly distributed as much as possible?
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	PolicyParametersHistory = apps.get_model('engine', 'PolicyParametersHistory')
+	# version_content_type = ContentType.objects.get_for_model(Version)
+	#priors we set by hand - will use instructor rating and confidence in future
+	# TODO : all explanations are having the same prior.
+
+	# context is the following json :
+	#   {
+	#   'policy_parameters':
+	#       {
+	#       'outcome_variable_name':<name of the outcome variable',
+	#       'max_rating': <maximum value of the outcome variable>,
+	#       'prior':
+	#           {'success':<prior success value>},
+	#           {'failure':<prior failure value>},
+	#       }
+	#   }
+	policy_parameters = context["policy_parameters"].parameters
+
+	prior_success = policy_parameters['prior']['success']
+
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
+	#max value of version rating, from qualtrics
+	max_rating = policy_parameters['max_rating']
+
+	if "batch_size" in policy_parameters:
+		batch_size = policy_parameters["batch_size"]
+	if "uniform_threshold" in policy_parameters:
+		uniform_threshold = policy_parameters["uniform_threshold"]
+	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"], policy__name="ts_configurable").count()
+	
+	#number of current participants within uniform random threshold, random sample
+	if "uniform_threshold" in policy_parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
+		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0, 
+							text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random_coldstart"
+		return version_dict
+
+	if "current_posteriors" not in policy_parameters or current_enrolled % batch_size == 0 :
+		#update policyparameters
+		current_posteriors = {}
+		for version in versions:
+			if "used_choose_group" in context and context["used_choose_group"] == True:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'ts_configurable'})
+			else:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+			if student_ratings:
+				student_ratings = student_ratings.all()
+				# student_ratings is a pandas.core.series.Series variable
+				rating_count = student_ratings.count()
+				rating_average = student_ratings.aggregate(Avg('value'))
+				rating_average = rating_average['value__avg']
+				if rating_average is None:
+					rating_average = 0
+
+
+			else: 
+				rating_average = 0
+				rating_count = 0
+			
+
+			#TODO - log to db later?
+			successes = (rating_average * rating_count) 
+			failures = (max_rating * rating_count) - (rating_average * rating_count)
+			current_posteriors[version.id] = {"successes":successes, "failures": failures}
+		
+			
+		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
+		
+		new_history.save()
+		context["policy_parameters"].parameters["current_posteriors"] = current_posteriors
+		new_update_time = datetime.datetime.now()
+		context["policy_parameters"].latest_update = new_update_time
+		context["policy_parameters"].save()
+	else:
+		current_posteriors = policy_parameters["current_posteriors"]
+
+	version_dict = {}
+	for version in current_posteriors:
+		current_posteriors[version]["successes"]
+		version_dict[Version.objects.get(id=version)] = {"successes":
+														current_posteriors[version]["successes"] + prior_success,
+														"failures":  current_posteriors[version]["failures"] + prior_failure}
+	print(version_dict)
+	if "tspostdiff_thresh" in policy_parameters:
+		print("ts_postdiff")
+		return ts_postdiff_sample(policy_parameters["tspostdiff_thresh"], version_dict, context)
+	else:
+		return ts_sample(version_dict, context)
+
+
+def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
+	"""
+	Inputs are a threshold and a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}
+	"""
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+
+
+	version_beta_1 = beta(versions_dict.values()[0]["successes"], versions_dict.values()[0]["failures"])
+	version_beta_2 = beta(versions_dict.values()[1]["successes"], versions_dict.values()[1]["failures"])
+
+	diff = abs(version_beta_1 - version_beta_2)
+
+	#log whether was chosen by ts or ur
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+
+	if diff < tspostdiff_thresh:# do UR
+		#print("choices to show")
+		#print(context['mooclet'].version_set.all())
+		version_to_show = choice(versions_dict.keys())
+		#version_to_show = Version.objects.get(id=version_to_show)
+		Value.objects.create(variable=ur_or_ts, value=0.0, 
+							text="UR", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random"
+		return version_dict
+
+	else: #Do TS with resampling
+		version_to_show = None
+		max_beta = 0
+		for version in versions_dict.keys():
+			successes = versions_dict[version]["successes"]
+			failures = versions_dict[version]["failures"]
+			version_beta = beta(successes, failures)
+			#print("pre max beta: " +str(max_beta))
+			#print("version_beta: " + str(version_beta))
+			if version_beta > max_beta:
+				max_beta = version_beta
+				version_to_show = version
+
+
+		#log policy chosen
+		Value.objects.create(variable=ur_or_ts, value=1.0, 
+							text="TS", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "thompson_sampling_postdiff"
+		return version_dict
+
+
+def ts_sample(versions_dict, context):
+	"""
+	Input is a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}, and context
+	"""
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	version_to_show = None
+	max_beta = 0
+	for version in versions_dict.keys():
+		successes = versions_dict[version]["successes"]
+		failures = versions_dict[version]["failures"]
+		version_beta = beta(successes, failures)
+		#print("pre max beta: " +str(max_beta))
+		#print("version_beta: " + str(version_beta))
+		if version_beta > max_beta:
+			max_beta = version_beta
+			version_to_show = version
+
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+
+	Value.objects.create(variable=ur_or_ts, value=1.0, 
+							text="TS_NONPOSTDIFF", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+	version_dict = model_to_dict(version_to_show)
+	version_dict["selection_method"] = "ts_nonpostdiff"
+	#version_to_show = Version.objects.get(id=version_to_show)
+	return version_to_show
+

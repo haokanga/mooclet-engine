@@ -97,8 +97,10 @@ class Variable(models.Model):
         if context:
             if 'mooclet' in context:
                 values = self.value_set.filter(version__in=context['mooclet'].version_set.all())
-                # if 'version' in context:
-                #     values = values.filter(version=context['version'])
+                if 'version' in context:
+                    values = values.filter(version=context['version'])
+                if 'policy' in context:
+                    values = values.filter(policy__name=context["policy"])
                 return values
         else:
             return self.value_set.all()
@@ -207,7 +209,7 @@ class PolicyParameters(models.Model):
         unique_together = ('mooclet', 'policy')
 
     def __unicode__(self):
-        return "{} {}".format(self.__class__.__name__, self.pk)
+        return "{}, Policy: {}".format(self.mooclet, self.policy)
 
 class PolicyParametersHistory(models.Model):
     mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
@@ -222,7 +224,7 @@ class PolicyParametersHistory(models.Model):
         #unique_together = ()
 
     def __unicode__(self):
-        return "{} {}".format(self.__class__.__name__, self.pk)
+        return "{}, Policy: {}, created: {}".format(self.mooclet, self.policy, self.creation_time)
 
     @classmethod
     def create_from_params(cls, params):

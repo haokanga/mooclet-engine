@@ -93,14 +93,22 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     variables.append(outcome)
 
     if not latest_update:
-        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet)
+        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet) #mooclet=mooclet
     else: 
-        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, timestamp__gte=latest_update)
-
-
+        values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet)#.order_by('learner') #mooclet=mooclet
+        #TODO ONLY CARE ABOUT DATE ON OUTCOME
+    #outcomes = Value.objects.filter(variable__name=outcome, mooclet=mooclet, policy=policyparams.policy).order_by('learner')
+    #print("OUTCOMES")
+    #print(len(outcomes))
+    #values = values | outcomes 
+    print("values")
+    print(len(values))
     variables.append('user_id')
+    #variables.append(outcome)
     variables.remove('version')
     variables.extend(action_space.keys())
+    print("variables")
+    print(variables)
     vals_to_df = pd.DataFrame({},columns=variables)
     curr_user = None
     curr_user_values = {}
@@ -125,13 +133,19 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             curr_user_values = {'user_id': curr_user}
 
         #transform mooclet version shown into dummified action
+        #todo  silo off version as its own thing??? so that we always get most recent?
         if value.variable.name == 'version':
                 action_config = policyparams.parameters['action_space']
                 #this is the numerical representation from the config
+                #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
+
                 for action in action_config:
+                    action = action.encode('utf-8')
+                    # print("current_version_json: ")
+                    # print(value.version.version_json)
                     curr_action_config = value.version.version_json[action]
                     curr_user_values[action] = curr_action_config
-
+        #UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
         else:
             curr_user_values[value.variable.name] = value.value
         print (curr_user_values)
@@ -142,8 +156,8 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print("duplicate data")
             print(curr_user_values)
             pass
-    print("values df: ")
-    print(vals_to_df)
+    # print("values df: ")
+    # print(vals_to_df)
     if not vals_to_df.empty:
         output_df = vals_to_df.dropna()
     else:
