@@ -25,7 +25,7 @@ class Mooclet(models.Model):
     # class Meta:
     #     unique_together = ('environment','mooclet_id')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}: {}".format(self.__class__.__name__, self.name)
 
     def run(self, policy=None, context={}):
@@ -63,7 +63,7 @@ class Version(models.Model):
     class Meta:
         unique_together = ('mooclet','name')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} {}: {}".format(self.__class__.__name__, self.pk, self.name)
 
 
@@ -85,7 +85,7 @@ class Variable(models.Model):
     environment = models.ForeignKey(Environment,blank=True,null=True, default=None, on_delete=models.SET_NULL)
     variable_id = models.PositiveIntegerField(blank=True,null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
         #return "{} {}: {}".format(self.__class__.__name__, self.pk, self.name)
 
@@ -162,7 +162,7 @@ class Policy(models.Model):
         verbose_name_plural = 'policies'
         unique_together = ('environment','policy_id')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_policy_function(self):
@@ -208,7 +208,7 @@ class PolicyParameters(models.Model):
         verbose_name_plural = 'policyparameters'
         unique_together = ('mooclet', 'policy')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}, Policy: {}".format(self.mooclet, self.policy)
 
 class PolicyParametersHistory(models.Model):
@@ -223,7 +223,7 @@ class PolicyParametersHistory(models.Model):
         ordering = ['creation_time']
         #unique_together = ()
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}, Policy: {}, created: {}".format(self.mooclet, self.policy, self.creation_time)
 
     @classmethod
