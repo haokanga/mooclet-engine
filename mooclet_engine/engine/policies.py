@@ -66,7 +66,7 @@ def choose_policy_group(variables, context):
 			print(policy_options)
 			policies = []
 			weights = []
-			for k, v in policy_options.iteritems():
+			for k, v in policy_options.items():
 				policies.append(k)
 				weights.append(v)
 			chosen_policy = choice(policies, p=weights)
@@ -245,7 +245,7 @@ def sample_without_replacement(variables, context):
 			#user hasn't seen versions previously
 			variables = policy_parameters['variables']
 			conditions = {}
-			for variable in variables.iteritems():
+			for variable in variables.items():
 				conditions[variable[0]] = choice(variable[1])
 
 
@@ -464,12 +464,12 @@ def if_then_rules_time(variables, context):
 
 # Draw thompson sample of (reg. coeff., variance) and also select the optimal action
 def thompson_sampling_contextual(variables, context):
-	'''
-	thompson sampling policy with contextual information.
-	Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
-	map dict to version
-	get the current user's context as a dict
-	'''
+        '''
+        thompson sampling policy with contextual information.
+        Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
+        map dict to version
+        get the current user's context as a dict
+        '''
 
 	Variable = apps.get_model('engine', 'Variable')
 	Value = apps.get_model('engine', 'Value')
@@ -477,7 +477,7 @@ def thompson_sampling_contextual(variables, context):
 	# Store normal-inverse-gamma parameters
 	policy_parameters = context['policy_parameters']
 	parameters = policy_parameters.parameters
-  
+        #print(str(parameters))
 	# Store regression equation string
 	regression_formula = parameters['regression_formula']
   
@@ -489,6 +489,7 @@ def thompson_sampling_contextual(variables, context):
   
 	# Store contextual variables
 	contextual_vars = parameters['contextual_variables']
+    #    print("contextual_vars_original: " + str(contextual_vars))
 	if 'learner' not in context:
 		pass
 	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
@@ -496,8 +497,7 @@ def thompson_sampling_contextual(variables, context):
 	for val in contextual_vars:
 		contextual_vars_dict[val.variable.name] = val.value
 	contextual_vars = contextual_vars_dict
-	print('contextual vars: ' + str(contextual_vars))
-
+     #   print('contextual vars: ' + str(contextual_vars))
 	# Get current priors parameters (normal-inverse-gamma)
 	mean = parameters['coef_mean']
 	cov = parameters['coef_cov']
