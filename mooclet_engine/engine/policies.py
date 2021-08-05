@@ -29,7 +29,7 @@ def uniform_random_time(variables,context):
 	if version_dict['text'] != '':
 		dtnow = datetime.date.today()
 		dtiso = dtnow.isoformat()
-		version_dict['text'] = dtiso + ' ' + version_dict['text'] 
+		version_dict['text'] = dtiso + ' ' + version_dict['text']
 	return version_dict
 
 def choose_policy_group(variables, context):
@@ -106,7 +106,7 @@ def weighted_random_time(variables, context):
 	if version_dict['text'] != '':
 		dtnow = datetime.date.today()
 		dtiso = dtnow.isoformat()
-		version_dict['text'] = dtiso + ' ' + version_dict['text'] 
+		version_dict['text'] = dtiso + ' ' + version_dict['text']
 	return version_dict
 
 def thompson_sampling_placeholder(variables,context):
@@ -159,7 +159,7 @@ def thompson_sampling(variables,context):
 			if rating_average is None:
 				rating_average = 0
 
-		else: 
+		else:
 			rating_average = 0
 			rating_count = 0
 		#get instructor conf and use for priors later
@@ -457,7 +457,7 @@ def if_then_rules_time(variables, context):
 	if version_dict['text'] != '':
 		dtnow = datetime.date.today()
 		dtiso = dtnow.isoformat()
-		version_dict['text'] = dtiso + ' ' + version_dict['text'] 
+		version_dict['text'] = dtiso + ' ' + version_dict['text']
 	return version_dict
 
 
@@ -481,22 +481,37 @@ def thompson_sampling_contextual(variables, context):
     regression_formula = parameters['regression_formula']
     # Action space, assumed to be a json
     action_space = parameters['action_space']
-  
+
     # Include intercept can be true or false
     include_intercept = parameters['include_intercept']
-  
+
     # Store contextual variables
     contextual_vars = parameters['contextual_variables']
     print("contextual_vars_original: " + str(contextual_vars))
     if 'learner' not in context:
         pass
-    print('learner' + str(context['learner'])) 
+    print('learner' + str(context['learner']))
     contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
     contextual_vars_dict = {}
     for val in contextual_vars:
         contextual_vars_dict[val.variable.name] = val.value
         contextual_vars = contextual_vars_dict
     print('contextual vars: ' + str(contextual_vars))
+
+	current_enrolled = Value.objects.filter(variablename="version", mooclet=context["mooclet"],
+											policyname="thompson_sampling_contextual").count()
+	if "uniform_threshold" in parameters:
+		uniform_threshold = parameters["uniform_threshold"]
+	# number of current participants within uniform random threshold, random sample
+	if "uniform_threshold" in parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
+		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TSCONTEXTUAL")
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0,
+							 text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
+							 version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random_coldstart"
+		return version_dict
     # Get current priors parameters (normal-inverse-gamma)
     mean = parameters['coef_mean']
     cov = parameters['coef_cov']
@@ -512,21 +527,21 @@ def thompson_sampling_contextual(variables, context):
     ## Generate all possible action combinations
     # Initialize action set
     all_possible_actions = [{}]
-  
+
     # Itterate over actions label names
     for cur in action_space:
         # Store set values corresponding to action labels
         cur_options = action_space[cur]
-	
+
 	# Initialize list of feasible actions
         new_possible = []
 	# Itterate over action set
-        for a in all_possible_actions:  
+        for a in all_possible_actions:
 	    # Itterate over value sets correspdong to action labels
             for cur_a in cur_options:
                 new_a = a.copy()
                 new_a[cur] = cur_a
-		
+
 		# Check if action assignment is feasible
                 if is_valid_action(new_a):
 		    # Append feasible action to list
@@ -580,16 +595,16 @@ def thompson_sampling_contextual_group(variables, context):
 	# Store normal-inverse-gamma parameters
 	policy_parameters = context['policy_parameters']
 	parameters = policy_parameters.parameters
-  
+
 	# Store regression equation string
 	regression_formula = parameters['regression_formula']
-  
+
 	# Action space, assumed to be a json
 	action_space = parameters['action_space']
-  
+
 	# Include intercept can be true or false
 	include_intercept = parameters['include_intercept']
-  
+
 	# Store contextual variables
 	contextual_vars = parameters['contextual_variables']
 	if 'learner' not in context:
@@ -610,7 +625,7 @@ def thompson_sampling_contextual_group(variables, context):
 	print('prior cov: ' + str(cov))
 	# Draw variance of errors
 	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
-  
+
 	# Draw regression coefficients according to priors
 	coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
 	print('sampled coeffs: ' + str(coef_draw))
@@ -618,27 +633,27 @@ def thompson_sampling_contextual_group(variables, context):
 	## Generate all possible action combinations
 	# Initialize action set
 	all_possible_actions = [{}]
-  
+
 	# Itterate over actions label names
 	for cur in action_space:
-	
+
 			# Store set values corresponding to action labels
 		cur_options = action_space[cur]
-	
+
 			# Initialize list of feasible actions
 		new_possible = []
-	
+
 			# Itterate over action set
 		for a in all_possible_actions:
-	  
+
 				# Itterate over value sets correspdong to action labels
 			for cur_a in cur_options:
 				new_a = a.copy()
 				new_a[cur] = cur_a
-		
+
 					# Check if action assignment is feasible
 				if is_valid_action(new_a):
-		  
+
 						# Append feasible action to list
 					new_possible.append(new_a)
 					all_possible_actions = new_possible
@@ -649,7 +664,7 @@ def thompson_sampling_contextual_group(variables, context):
 	## Calculate outcome for each action and find the best action
 	best_outcome = -np.inf
 	best_action = None
-  
+
 	print('regression formula: ' + regression_formula)
 	# Itterate of all feasible actions
 	for action in all_possible_actions:
@@ -689,11 +704,11 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 	'''
 	# Strip blank beginning and end space from equation
 	formula = formula.strip()
-  
+
 	# Split RHS of equation into variable list (context, action, interactions)
 	vars_list = list(map(str.strip, formula.split('~')[1].strip().split('+')))
 
-  
+
 	# Add 1 for intercept in variable list if specified
 	if include_intercept:
 		vars_list.insert(0,1.)
@@ -731,8 +746,8 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 		# Intercept has value 1
 		if type(var) == float:
 			value = 1.
-	  
-		# Interaction term value 
+
+		# Interaction term value
 		elif '*' in var:
 			interacting_vars = var.split('*')
 
@@ -743,7 +758,7 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 		# Action or context value
 		else:
 			value = var_dict[var]
-	  
+
 		# Compute expected reward (hypothesized regression model)
 		print("value " + str(value) )
 		print("coefficient " + str(coef))
@@ -759,10 +774,10 @@ def is_valid_action(action):
 	'''
 	checks whether an action is valid, meaning, no more than one vars under same category are assigned 1
 	'''
-  
+
 	# Obtain labels for each action
 	keys = action.keys()
-  
+
 	# Itterate over each action label
 	for cur_key in keys:
 
@@ -788,58 +803,58 @@ def is_valid_action(action):
 def posteriors(y, X, m_pre, V_pre, a1_pre, a2_pre):
   #y = list of uotcomes
   #X = design matrix
-  #priors input by users, but if no input then default 
+  #priors input by users, but if no input then default
   #m_pre vector 0 v_pre is an identity matrix - np.identity(size of params) a1 & a2 both 2. save the updates
   #get the reward as a spearate vector. figure ut batch size issues (time based)
 
   # Data size
   datasize = len(y)
-  
+
   # X transpose
   Xtranspose = np.matrix.transpose(X)
-  
+
   # Residuals
   # (y - Xb) and (y - Xb)'
   resid = np.subtract(y, np.dot(X,m_pre))
   resid_trans = np.matrix.transpose(resid)
-  
+
   # N x N middle term for gamma update
   # (I + XVX')^{-1}
   mid_term = np.linalg.inv(np.add(np.identity(datasize), np.dot(np.dot(X, V_pre),Xtranspose)))
-  
+
   ## Update coeffecients priors
-  
+
   # Update mean vector
   # [(V^{-1} + X'X)^{-1}][V^{-1}mu + X'y]
   m_post = np.dot(np.linalg.inv(np.add(np.linalg.inv(V_pre), np.dot(Xtranspose,X))), np.add(np.dot(np.linalg.inv(V_pre), m_pre), np.dot(Xtranspose,y)))
-  
-  # Update covariance matrix 
+
+  # Update covariance matrix
   # (V^{-1} + X'X)^{-1}
   V_post = np.linalg.inv(np.add(np.linalg.inv(V_pre), np.dot(Xtranspose,X)))
-  
+
   ## Update precesion prior
-  
+
   # Update gamma parameters
   # a + n/2 (shape parameter)
   a1_post = a1_pre + datasize/2
-  
+
   # b + (1/2)(y - Xmu)'(I + XVX')^{-1}(y - Xmu) (scale parameter)
   a2_post = a2_pre + (np.dot(np.dot(resid_trans, mid_term), resid))/2
-  
+
   ## Posterior draws
-  
+
   # Precesions from inverse gamma (shape, loc, scale, draws)
   precesion_draw = invgamma.rvs(a1_post, 0, a2_post, size = 1)
-  
-  # Coeffecients from multivariate normal 
+
+  # Coeffecients from multivariate normal
   beta_draw = np.random.multivariate_normal(m_post, precesion_draw*V_post)
-  
+
   # List with beta and s^2
   #beta_s2 = np.append(beta_draw, precesion_draw)
 
   # Return posterior drawn parameters
   # output: [(betas, s^2, a1, a2), V]
-  return{"coef_mean": m_post, 
+  return{"coef_mean": m_post,
 		"coef_cov": V_post,
 		"variance_a": a1_post,
 		"variance_b": a2_post}
@@ -905,10 +920,10 @@ def thompson_sampling_postdiff(variables,context):
 			if rating_average is None:
 				rating_average = 0
 
-		else: 
+		else:
 			rating_average = 0
 			rating_count = 0
-	
+
 		successes = (rating_average * rating_count) + prior_success
 		failures = (max_rating * rating_count) - (rating_average * rating_count) + prior_failure
 		print("successes: " + str(successes))
@@ -917,7 +932,7 @@ def thompson_sampling_postdiff(variables,context):
 		version_to_draw_dict[version] = (successes, failures)
 		print(version_to_draw_dict)
 
-	 
+
 	#	if version_beta > max_beta:
 	#		max_beta = version_beta
 	#		version_to_show = version
@@ -933,7 +948,7 @@ def thompson_sampling_postdiff(variables,context):
 		print("choices to show")
 		print(context['mooclet'].version_set.all())
 		version_to_show = choice(context['mooclet'].version_set.all())
-		Value.objects.create(variable=ur_or_ts, value=0.0, 
+		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
@@ -953,7 +968,7 @@ def thompson_sampling_postdiff(variables,context):
 
 
 		#log policy chosen
-		Value.objects.create(variable=ur_or_ts, value=1.0, 
+		Value.objects.create(variable=ur_or_ts, value=1.0,
 							text="TS", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 
@@ -998,7 +1013,7 @@ def thompson_sampling_uniform_start(variables,context):
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 	if n_enrolled <= uniform_threshold:
 		version_to_show = choice(context['mooclet'].version_set.all())
-		Value.objects.create(variable=ur_or_ts, value=0.0, 
+		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
@@ -1023,10 +1038,10 @@ def thompson_sampling_uniform_start(variables,context):
 				if rating_average is None:
 					rating_average = 0
 
-			else: 
+			else:
 				rating_average = 0
 				rating_count = 0
-			
+
 
 			#TODO - log to db later?
 			successes = (rating_average * rating_count) + prior_success
@@ -1039,7 +1054,7 @@ def thompson_sampling_uniform_start(variables,context):
 				max_beta = version_beta
 				version_to_show = version
 
-		Value.objects.create(variable=ur_or_ts, value=1.0, 
+		Value.objects.create(variable=ur_or_ts, value=1.0,
 							text="TS", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
@@ -1109,19 +1124,19 @@ def thompson_sampling_batched(variables,context):
 					rating_average = 0
 
 
-			else: 
+			else:
 				rating_average = 0
 				rating_count = 0
-			
+
 
 			#TODO - log to db later?
-			successes = (rating_average * rating_count) 
+			successes = (rating_average * rating_count)
 			failures = (max_rating * rating_count) - (rating_average * rating_count)
 			current_posteriors[version.id] = {"successes":successes, "failures": failures}
-		
-			
+
+
 		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
-		
+
 		new_history.save()
 		context["policy_parameters"].parameters["current_posteriors"] = current_posteriors
 		new_update_time = datetime.datetime.now()
@@ -1144,7 +1159,7 @@ def thompson_sampling_batched(variables,context):
 			max_beta = version_beta
 			version_to_show = Version.objects.get(id=version)
 
-	# Value.objects.create(variable=ur_or_ts, value=1.0, 
+	# Value.objects.create(variable=ur_or_ts, value=1.0,
 	# 					text="TS", learner=context["learner"], mooclet=context["mooclet"],
 	# 					version=version_to_show)
 	# version_dict = model_to_dict(version_to_show)
@@ -1197,12 +1212,12 @@ def ts_configurable(variables, context):
 	if "uniform_threshold" in policy_parameters:
 		uniform_threshold = policy_parameters["uniform_threshold"]
 	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"], policy__name="ts_configurable").count()
-	
+
 	#number of current participants within uniform random threshold, random sample
 	if "uniform_threshold" in policy_parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
 		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 		version_to_show = choice(context['mooclet'].version_set.all())
-		Value.objects.create(variable=ur_or_ts, value=0.0, 
+		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
@@ -1228,20 +1243,20 @@ def ts_configurable(variables, context):
 					rating_average = 0
 
 
-			else: 
+			else:
 				rating_average = 0
 				rating_count = 0
-			
+
 
 			success_update = (sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
 			successes = success_update
 			failures = rating_count - success_update
 
 			current_posteriors[version.id] = {"successes":successes, "failures": failures}
-		
-			
+
+
 		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
-		
+
 		new_history.save()
 		context["policy_parameters"].parameters["current_posteriors"] = current_posteriors
 		new_update_time = datetime.datetime.now()
@@ -1288,7 +1303,7 @@ def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
 		#print(context['mooclet'].version_set.all())
 		version_to_show = choice(versions_dict.keys())
 		#version_to_show = Version.objects.get(id=version_to_show)
-		Value.objects.create(variable=ur_or_ts, value=0.0, 
+		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
@@ -1310,7 +1325,7 @@ def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
 
 
 		#log policy chosen
-		Value.objects.create(variable=ur_or_ts, value=1.0, 
+		Value.objects.create(variable=ur_or_ts, value=1.0,
 							text="TS", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 
@@ -1342,7 +1357,7 @@ def ts_sample(versions_dict, context):
 
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 
-	Value.objects.create(variable=ur_or_ts, value=1.0, 
+	Value.objects.create(variable=ur_or_ts, value=1.0,
 							text="TS_NONPOSTDIFF", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 	version_dict = model_to_dict(version_to_show)

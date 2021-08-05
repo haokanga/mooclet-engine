@@ -138,7 +138,7 @@ def update_workflow_data(self, **kwargs):
 
 	workflow_object.lock()
 	result_df = workflow_object.read()
-	
+
 
 	print(result_df)
 	print(list(result_df))
@@ -182,7 +182,7 @@ def run_version_if_none(row, mooclet):
 		print("no mooclet row")
 		version = mooclet.run(context={"learner":learner})
 		version_info = {mooclet.name + "_version": version.name, mooclet.name + "_text": version.text}
-		
+
 		print(version_info)
 		version_info = pd.Series(version_info)
 		return version_info
@@ -200,7 +200,7 @@ def run_version_if_none(row, mooclet):
 		return row[mooclet.name + "_version"], row[mooclet.name + "_text"]
 
 
-	
+
 
 
 
@@ -232,14 +232,19 @@ def update_model(self, **kwargs):
 	latest_update = params.latest_update
 	values = values_to_df(mooclet, params, latest_update)
 	#print(values)
-	
-	if not values.empty:
+	# fix batch_size here: Might have to change to fix batch size for future use
+	if "batch_size" in parameters:
+		batch_size = parameters["batch_size"]
+	current_enrolled = Value.objects.filter(variablename="version", mooclet=context["mooclet"],
+											policyname=policy).count()
+
+	if not values.empty and current_enrolled % batch_size == 0:
 		print("has new values!")
 		print(len(values))
 		new_history = PolicyParametersHistory.create_from_params(params)
 		new_history.parameters["update_size"] = len(values)
 		new_history.save()
-		
+
 		rewards = values[parameters['outcome_variable']]
 		values = values.drop(["user_id", parameters['outcome_variable']], axis=1)
 
