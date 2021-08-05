@@ -497,21 +497,20 @@ def thompson_sampling_contextual(variables, context):
         contextual_vars_dict[val.variable.name] = val.value
         contextual_vars = contextual_vars_dict
     print('contextual vars: ' + str(contextual_vars))
-
-	current_enrolled = Value.objects.filter(variablename="version", mooclet=context["mooclet"],
-											policyname="thompson_sampling_contextual").count()
-	if "uniform_threshold" in parameters:
-		uniform_threshold = parameters["uniform_threshold"]
-	# number of current participants within uniform random threshold, random sample
-	if "uniform_threshold" in parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
-		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TSCONTEXTUAL")
-		version_to_show = choice(context['mooclet'].version_set.all())
-		Value.objects.create(variable=ur_or_ts, value=0.0,
+    current_enrolled = Value.objects.filter(variablename="version", mooclet=context["mooclet"],
+                                            policyname="thompson_sampling_contextual").count()
+    if "uniform_threshold" in parameters:
+        uniform_threshold = parameters["uniform_threshold"]
+    # number of current participants within uniform random threshold, random sample
+    if "uniform_threshold" in parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
+        ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TSCONTEXTUAL")
+        version_to_show = choice(context['mooclet'].version_set.all())
+        Value.objects.create(variable=ur_or_ts, value=0.0,
 							 text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
 							 version=version_to_show)
-		version_dict = model_to_dict(version_to_show)
-		version_dict["selection_method"] = "uniform_random_coldstart"
-		return version_dict
+        version_dict = model_to_dict(version_to_show)
+        version_dict["selection_method"] = "uniform_random_coldstart"
+        return version_dict
     # Get current priors parameters (normal-inverse-gamma)
     mean = parameters['coef_mean']
     cov = parameters['coef_cov']
