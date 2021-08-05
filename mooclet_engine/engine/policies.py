@@ -4,7 +4,7 @@ from numpy.random import choice, beta
 from django.urls import reverse
 from django.apps import apps
 # from django.contrib.contenttypes.models import ContentType
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 import json
 from collections import Counter
 from .utils.utils import sample_no_replacement
@@ -464,113 +464,106 @@ def if_then_rules_time(variables, context):
 
 # Draw thompson sample of (reg. coeff., variance) and also select the optimal action
 def thompson_sampling_contextual(variables, context):
-        '''
-        thompson sampling policy with contextual information.
-        Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
-        map dict to version
-        get the current user's context as a dict
-        '''
-
-	Variable = apps.get_model('engine', 'Variable')
-	Value = apps.get_model('engine', 'Value')
-	Version = apps.get_model('engine', 'Version')
-	# Store normal-inverse-gamma parameters
-	policy_parameters = context['policy_parameters']
-	parameters = policy_parameters.parameters
-        #print(str(parameters))
-	# Store regression equation string
-	regression_formula = parameters['regression_formula']
+    '''
+    thompson sampling policy with contextual information.
+    Outcome is estimated using bayesian linear regression implemented by NIG conjugate priors.
+    map dict to version
+    get the current user's context as a dict
+    '''
+    Variable = apps.get_model('engine', 'Variable')
+    Value = apps.get_model('engine', 'Value')
+    Version = apps.get_model('engine', 'Version')
+    # Store normal-inverse-gamma parameters
+    policy_parameters = context['policy_parameters']
+    parameters = policy_parameters.parameters
+    print(str(parameters))
+    # Store regression equation string
+    regression_formula = parameters['regression_formula']
+    # Action space, assumed to be a json
+    action_space = parameters['action_space']
   
-	# Action space, assumed to be a json
-	action_space = parameters['action_space']
+    # Include intercept can be true or false
+    include_intercept = parameters['include_intercept']
   
-	# Include intercept can be true or false
-	include_intercept = parameters['include_intercept']
+    # Store contextual variables
+    contextual_vars = parameters['contextual_variables']
+    print("contextual_vars_original: " + str(contextual_vars))
+    if 'learner' not in context:
+        pass
+    print('learner' + str(context['learner'])) 
+    contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
+    contextual_vars_dict = {}
+    for val in contextual_vars:
+        contextual_vars_dict[val.variable.name] = val.value
+        contextual_vars = contextual_vars_dict
+    print('contextual vars: ' + str(contextual_vars))
+    # Get current priors parameters (normal-inverse-gamma)
+    mean = parameters['coef_mean']
+    cov = parameters['coef_cov']
+    variance_a = parameters['variance_a']
+    variance_b = parameters['variance_b']
+    print('prior mean: ' + str(mean))
+    print('prior cov: ' + str(cov))
+    # Draw variance of errors
+    precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
+    # Draw regression coefficients according to priors
+    coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
+    print('sampled coeffs: ' + str(coef_draw))
+    ## Generate all possible action combinations
+    # Initialize action set
+    all_possible_actions = [{}]
   
-	# Store contextual variables
-	contextual_vars = parameters['contextual_variables']
-    #    print("contextual_vars_original: " + str(contextual_vars))
-	if 'learner' not in context:
-		pass
-	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
-	contextual_vars_dict = {}
-	for val in contextual_vars:
-		contextual_vars_dict[val.variable.name] = val.value
-	contextual_vars = contextual_vars_dict
-     #   print('contextual vars: ' + str(contextual_vars))
-	# Get current priors parameters (normal-inverse-gamma)
-	mean = parameters['coef_mean']
-	cov = parameters['coef_cov']
-	variance_a = parameters['variance_a']
-	variance_b = parameters['variance_b']
-	print('prior mean: ' + str(mean))
-	print('prior cov: ' + str(cov))
-	# Draw variance of errors
-	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
-  
-	# Draw regression coefficients according to priors
-	coef_draw = np.random.multivariate_normal(mean, precesion_draw * cov)
-	print('sampled coeffs: ' + str(coef_draw))
-
-	## Generate all possible action combinations
-	# Initialize action set
-	all_possible_actions = [{}]
-  
-	# Itterate over actions label names
-	for cur in action_space:
+    # Itterate over actions label names
+    for cur in action_space:
+        # Store set values corresponding to action labels
+        cur_options = action_space[cur]
 	
-			# Store set values corresponding to action labels
-		cur_options = action_space[cur]
-	
-			# Initialize list of feasible actions
-		new_possible = []
-	
-			# Itterate over action set
-		for a in all_possible_actions:
-	  
-				# Itterate over value sets correspdong to action labels
-			for cur_a in cur_options:
-				new_a = a.copy()
-				new_a[cur] = cur_a
-
+	# Initialize list of feasible actions
+        new_possible = []
+	# Itterate over action set
+        for a in all_possible_actions:  
+	    # Itterate over value sets correspdong to action labels
+            for cur_a in cur_options:
+                new_a = a.copy()
+                new_a[cur] = cur_a
 		
-					# Check if action assignment is feasible
-				if is_valid_action(new_a):
-						# Append feasible action to list
-					new_possible.append(new_a)
-					all_possible_actions = new_possible
+		# Check if action assignment is feasible
+                if is_valid_action(new_a):
+		    # Append feasible action to list
+                    new_possible.append(new_a)
+                    all_possible_actions = new_possible
 
-	# Print entire action set
-	print('all possible actions: ' + str(all_possible_actions))
+    # Print entire action set
+    print('all possible actions: ' + str(all_possible_actions))
 
-	## Calculate outcome for each action and find the best action
-	best_outcome = -np.inf
-	best_action = None
+    ## Calculate outcome for each action and find the best action
+    best_outcome = -np.inf
+    best_action = None
 
-	print('regression formula: ' + regression_formula)
-	# Itterate of all feasible actions
-	for action in all_possible_actions:
-		independent_vars = action.copy()
-		independent_vars.update(contextual_vars)
-		print('independent vars: ' + str(independent_vars))
-		# Compute expected reward given action
-		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
-		print("curr_outcome" + str(outcome))
-		print('outcome: ' + str(best_outcome))
-		# Keep track of optimal (action, outcome)
-		if best_action is None or outcome > best_outcome:
-			best_outcome = outcome
-			best_action = action
+    print('regression formula: ' + regression_formula)
+    # Itterate of all feasible actions
+    for action in all_possible_actions:
+        independent_vars = action.copy()
+        independent_vars.update(contextual_vars)
+        print('independent vars: ' + str(independent_vars))
+        # Compute expected reward given action
+        outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
+        print("curr_outcome" + str(outcome))
+        print('outcome: ' + str(best_outcome))
+        # Keep track of optimal (action, outcome)
+        if best_action is None or outcome > best_outcome:
+            best_outcome = outcome
+            best_action = action
 
-	# Print optimal action
-	print('best action: ' + str(best_action))
-	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
+    # Print optimal action
+    print('best action: ' + str(best_action))
+    version_to_show = Version.objects.filter(mooclet=context['mooclet'])
 
-	version_to_show = version_to_show.get(version_json__contains=best_action)
+    version_to_show = version_to_show.get(version_json__contains=best_action)
 
-	#TODO: convert best action into version
-	#version_to_show = {}
-	return version_to_show
+    #TODO: convert best action into version
+    #version_to_show = {}
+    return version_to_show
 
 # Draw thompson sample of (reg. coeff., variance) and also select the optimal action
 def thompson_sampling_contextual_group(variables, context):
@@ -1197,7 +1190,7 @@ def ts_configurable(variables, context):
 	prior_failure = policy_parameters['prior']['failure']
 	outcome_variable_name = policy_parameters['outcome_variable_name']
 	#max value of version rating, from qualtrics
-	max_rating = policy_parameters['max_rating']
+	min_rating, max_rating = policy_parameters["min_rating"] if "min_rating" in policy_parameters else 0, policy_parameters['max_rating']
 
 	if "batch_size" in policy_parameters:
 		batch_size = policy_parameters["batch_size"]
@@ -1228,8 +1221,9 @@ def ts_configurable(variables, context):
 				student_ratings = student_ratings.all()
 				# student_ratings is a pandas.core.series.Series variable
 				rating_count = student_ratings.count()
-				rating_average = student_ratings.aggregate(Avg('value'))
-				rating_average = rating_average['value__avg']
+				# rating_average = student_ratings.aggregate(Avg('value'))
+				sum_rewards = student_ratings.aggregate(Sum('value'))
+                                # rating_average = rating_average['value__avg']
 				if rating_average is None:
 					rating_average = 0
 
@@ -1239,9 +1233,10 @@ def ts_configurable(variables, context):
 				rating_count = 0
 			
 
-			#TODO - log to db later?
-			successes = (rating_average * rating_count) 
-			failures = (max_rating * rating_count) - (rating_average * rating_count)
+			success_update = (sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
+			successes = success_update
+			failures = rating_count - success_update
+
 			current_posteriors[version.id] = {"successes":successes, "failures": failures}
 		
 			
