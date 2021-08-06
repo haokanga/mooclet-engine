@@ -1288,8 +1288,9 @@ def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
 	Version = apps.get_model('engine', 'Version')
 
 
-	version_beta_1 = beta(versions_dict.values()[0]["successes"], versions_dict.values()[0]["failures"])
-	version_beta_2 = beta(versions_dict.values()[1]["successes"], versions_dict.values()[1]["failures"])
+	version_values = list(versions_dict.values())
+	version_beta_1 = beta(version_values[0]["successes"], version_values[0]["failures"])
+	version_beta_2 = beta(version_values[1]["successes"], version_values[1]["failures"])
 
 	diff = abs(version_beta_1 - version_beta_2)
 
