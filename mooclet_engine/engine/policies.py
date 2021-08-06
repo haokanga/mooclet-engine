@@ -502,7 +502,7 @@ def thompson_sampling_contextual(variables, context):
 	if "uniform_threshold" in parameters:
 		uniform_threshold = parameters["uniform_threshold"]
 	# number of current participants within uniform random threshold, random sample
-	if "uniform_threshold" in parameters and current_enrolled <= policy_parameters["uniform_threshold"]:
+	if "uniform_threshold" in parameters and current_enrolled <= parameters["uniform_threshold"]:
 		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TSCONTEXTUAL")
 		version_to_show = choice(context['mooclet'].version_set.all())
 		Value.objects.create(variable=ur_or_ts, value=0.0,
