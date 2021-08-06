@@ -497,7 +497,7 @@ def thompson_sampling_contextual(variables, context):
 		contextual_vars_dict[val.variable.name] = val.value
 		contextual_vars = contextual_vars_dict
 	print('contextual vars: ' + str(contextual_vars))
-	current_enrolled = Value.objects.filter(variablename="version", mooclet=context["mooclet"],
+	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"],
                                             policy__name="thompson_sampling_contextual").count()
 	if "uniform_threshold" in parameters:
 		uniform_threshold = parameters["uniform_threshold"]
