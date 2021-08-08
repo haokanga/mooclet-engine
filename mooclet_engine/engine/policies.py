@@ -498,7 +498,7 @@ def thompson_sampling_contextual(variables, context):
 		contextual_vars = contextual_vars_dict
 	print('contextual vars: ' + str(contextual_vars))
 	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"],
-                                            policy__name="thompson_sampling_contextual").count()
+											policy__name="thompson_sampling_contextual").count()
 	if "uniform_threshold" in parameters:
 		uniform_threshold = parameters["uniform_threshold"]
 	# number of current participants within uniform random threshold, random sample
@@ -1237,6 +1237,7 @@ def ts_configurable(variables, context):
 				rating_count = student_ratings.count()
 				# rating_average = student_ratings.aggregate(Avg('value'))
 				sum_rewards = student_ratings.aggregate(Sum('value'))
+				sum_rewards = sum_rewards['value__sum']
 				# rating_average = rating_average['value__avg']
 				# if rating_average is None:
 					# rating_average = 0
