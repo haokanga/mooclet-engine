@@ -1299,9 +1299,10 @@ def ts_postdiff_sample(tspostdiff_thresh, versions_dict, context):
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 
 	if diff < tspostdiff_thresh:# do UR
-		#print("choices to show")
+		# #print("choices to show")
 		#print(context['mooclet'].version_set.all())
-		version_to_show = choice(versions_dict.keys())
+		version_to_show = list(versions_dict.keys())
+		version_to_show = choice(version_to_show)
 		#version_to_show = Version.objects.get(id=version_to_show)
 		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR", learner=context["learner"], mooclet=context["mooclet"],
