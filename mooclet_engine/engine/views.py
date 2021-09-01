@@ -4,14 +4,17 @@ from .models import *
 from .serializers import *
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 import pandas as pd
+import numpy as np
 import json
 
 # rest framework viewsets
 
 class MoocletViewSet(viewsets.ModelViewSet):
-    
+
 
     queryset = Mooclet.objects.all()
     serializer_class = MoocletSerializer
@@ -46,7 +49,7 @@ class MoocletViewSet(viewsets.ModelViewSet):
             serialized_version = VersionSerializer(version).data#.save()
             #serialized_version = serialized_version.data
 
-        version_shown = Value( 
+        version_shown = Value(
                             learner=learner,
                             variable=Version,
                             mooclet=self.get_object(),
@@ -186,3 +189,18 @@ class PolicyParametersHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PolicyParametersHistory.objects.all()
     serializer_class = PolicyParametersHistorySerializer
     filter_fields = ('mooclet', 'policy')
+
+
+class getBinaryContextualImputer(APIView):
+    def get(self, request):
+        req = request.body
+
+        if not req['name']:
+            return Response({'error':'invalid'}, status=500)
+        else:
+            imputer = {}
+            values = Value.objects.filter(variable=req['name'])
+            binary_t_prop = values.aggregate(Sum('value'))/values.counts()
+            imputer['imputer'] = np.random.choice(1, 1, p=[1-binary_t_prop, binary_t_prop])
+
+        return Response(imputer)
