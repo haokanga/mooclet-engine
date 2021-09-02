@@ -197,10 +197,14 @@ class getBinaryContextualImputer(APIView):
 
         if not req['name']:
             return Response({'error':'invalid'}, status=500)
+
+        imputer = {}
+        values = Value.objects.filter(variable=req['name'])
+
+        if values.counts() == 0:
+            imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
         else:
-            imputer = {}
-            values = Value.objects.filter(variable=req['name'])
             binary_t_prop = values.aggregate(Sum('value'))/values.counts()
-            imputer['imputer'] = np.random.choice(1, 1, p=[1-binary_t_prop, binary_t_prop])
+            imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
 
         return Response(imputer)
