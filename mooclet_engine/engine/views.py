@@ -193,7 +193,7 @@ class PolicyParametersHistoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class getBinaryContextualImputer(APIView):
     def get(self, request):
-        req = request.body
+        req = json.loads(request.body)
 
         if req['name'] is not None or not req['mooclet'] is not None:
             return Response({'error':'invalid'}, status=500)
