@@ -195,7 +195,7 @@ class getBinaryContextualImputer(APIView):
     def get(self, request):
         req = request.body
 
-        if not req['name'] or not req['mooclet']:
+        if req['name'] is not None or not req['mooclet'] is not None:
             return Response({'error':'invalid'}, status=500)
 
         imputer = {}
