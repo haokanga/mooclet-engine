@@ -205,7 +205,9 @@ class getBinaryContextualImputer(APIView):
         if num_values == 0:
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
         else:
-            binary_t_prop = values.aggregate(Sum('value'))/num_values
+            sum_values = values.aggregate(Sum('value'))
+            sum_values = sum_values['value__sum']
+            binary_t_prop = sum_values/num_values
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
 
         return Response(imputer)
