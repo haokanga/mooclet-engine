@@ -201,10 +201,10 @@ class getBinaryContextualImputer(APIView):
         imputer = {}
         values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet'])
 
-        if values.counts() == 0:
+        if values.count() == 0:
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
         else:
-            binary_t_prop = values.aggregate(Sum('value'))/values.counts()
+            binary_t_prop = values.aggregate(Sum('value'))/values.count()
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
 
         return Response(imputer)
