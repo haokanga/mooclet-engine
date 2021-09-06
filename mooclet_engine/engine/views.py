@@ -199,7 +199,7 @@ class getBinaryContextualImputer(APIView):
             return Response({'error':'invalid'}, status=500)
 
         imputer = {}
-        values = Value.objects.filter(variable=req['name'], mooclet=req['mooclet'])
+        values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet'])
 
         if values.counts() == 0:
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
