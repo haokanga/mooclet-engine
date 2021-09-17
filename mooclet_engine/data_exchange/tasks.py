@@ -235,10 +235,14 @@ def update_model(self, **kwargs):
 	# fix batch_size here: Might have to change to fix batch size for future use
 	if "batch_size" in parameters:
 		batch_size = parameters["batch_size"]
-	current_enrolled = Value.objects.filter(variable__name="version", mooclet=mooclet,
-											policy__name=policy).count()
+	else:
+		batch_size = 1
+	# current_enrolled = Value.objects.filter(variable__name="version", mooclet=mooclet,
+	# 										policy=policy).count()
+	print("update_model: len(values): {}".format(len(values)))
+	print("update_model: values.empty: {}".format(values.empty))
 
-	if not values.empty and current_enrolled % batch_size == 0:
+	if not values.empty and len(values) >= batch_size:
 		print("has new values!")
 		print(len(values))
 		new_history = PolicyParametersHistory.create_from_params(params)
