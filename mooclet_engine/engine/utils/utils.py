@@ -27,7 +27,7 @@ def sample_no_replacement(full_set, previous_set=None):
 			#print cond
 			cond = cond[0]
 		else:
-			#choose the one with least assignment 
+			#choose the one with least assignment
 			#(where same value is ordered arbitrarily)
 			cond = cond_common_order[-1][0]
 	else:
@@ -94,13 +94,13 @@ def values_to_df(mooclet, policyparams, latest_update=None):
 
     if not latest_update:
         values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet) #mooclet=mooclet
-    else: 
+    else:
         values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet)#.order_by('learner') #mooclet=mooclet
         #TODO ONLY CARE ABOUT DATE ON OUTCOME
     #outcomes = Value.objects.filter(variable__name=outcome, mooclet=mooclet, policy=policyparams.policy).order_by('learner')
     #print("OUTCOMES")
     #print(len(outcomes))
-    #values = values | outcomes 
+    #values = values | outcomes
     print("values")
     print(len(values))
     variables.append('user_id')
@@ -141,6 +141,9 @@ def values_to_df(mooclet, policyparams, latest_update=None):
 
                 for action in action_config:
                     action = action.encode('utf-8')
+                    print("values_to_df: action: {}, {}".format(action, type(action)))
+                    print("values_to_df: value.version: {}".format(value.version))
+                    print("values_to_df: value.version.version_json: {}".format(value.version.version_json))
                     # print("current_version_json: ")
                     # print(value.version.version_json)
                     curr_action_config = value.version.version_json[action]
