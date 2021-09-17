@@ -239,8 +239,8 @@ def update_model(self, **kwargs):
 		batch_size = 1
 	# current_enrolled = Value.objects.filter(variable__name="version", mooclet=mooclet,
 	# 										policy=policy).count()
-	print("update_model: len(values): {}".format(len(values)))
-	print("update_model: values.empty: {}".format(values.empty))
+	# print("update_model: len(values): {}".format(len(values)))
+	# print("update_model: values.empty: {}".format(values.empty))
 
 	if not values.empty and len(values) >= batch_size:
 		print("has new values!")

@@ -140,12 +140,12 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
 
                 for action in action_config:
-                    print("values_to_df: action: {}, {}".format(action, type(action)))
-                    # action = action.encode('utf-8')
-                    print("values_to_df: action: {}, {}".format(action, type(action)))
-                    print("values_to_df: value.version: {}".format(value.version))
-                    print("values_to_df: value.version.version_json: {}".format(value.version.version_json))
-                    print("values_to_df: value.version.version_json[link]: {}".format(value.version.version_json["link"]))
+                    # print("values_to_df: action: {}, {}".format(action, type(action)))
+                    # # action = action.encode('utf-8')
+                    # print("values_to_df: action: {}, {}".format(action, type(action)))
+                    # print("values_to_df: value.version: {}".format(value.version))
+                    # print("values_to_df: value.version.version_json: {}".format(value.version.version_json))
+                    # print("values_to_df: value.version.version_json[link]: {}".format(value.version.version_json["link"]))
                     # print("current_version_json: ")
                     # print(value.version.version_json)
                     curr_action_config = value.version.version_json[action]
