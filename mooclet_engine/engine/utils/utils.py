@@ -141,7 +141,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
 
                 for action in action_config:
                     print("values_to_df: action: {}, {}".format(action, type(action)))
-                    action = action.encode('utf-8')
+                    # action = action.encode('utf-8')
                     print("values_to_df: action: {}, {}".format(action, type(action)))
                     print("values_to_df: value.version: {}".format(value.version))
                     print("values_to_df: value.version.version_json: {}".format(value.version.version_json))
