@@ -140,9 +140,18 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
 
                 for action in action_config:
-                    print("values_to_df: action: {}, {}".format(action, type(action)))
-                    action = str(action)
-                    print("values_to_df: action: {}, {}".format(action, type(action)))
+                    # print("values_to_df: action: {}, {}".format(action, type(action)))
+                    # action = str(action)
+                    # print("values_to_df: action: {}, {}".format(action, type(action)))
+                    try:
+                        action = action.encode('utf-8')
+                        curr_action_config = value.version.version_json[action]
+                        curr_user_values[action] = curr_action_config
+                    except:
+                        print("action cannot be byte str")
+                    else:
+                        curr_action_config = value.version.version_json[action]
+                        curr_user_values[action] = curr_action_config
                     # # action = action.encode('utf-8')
                     # print("values_to_df: action: {}, {}".format(action, type(action)))
                     # print("values_to_df: value.version: {}".format(value.version))
@@ -150,8 +159,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                     # print("values_to_df: value.version.version_json[link]: {}".format(value.version.version_json["link"]))
                     # print("current_version_json: ")
                     # print(value.version.version_json)
-                    curr_action_config = value.version.version_json[action]
-                    curr_user_values[action] = curr_action_config
         #UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
         else:
             curr_user_values[value.variable.name] = value.value
