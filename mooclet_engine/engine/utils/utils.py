@@ -102,6 +102,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #print(len(outcomes))
     #values = values | outcomes
     print("values")
+    print(values)
     print(len(values))
     variables.append('user_id')
     #variables.append(outcome)
