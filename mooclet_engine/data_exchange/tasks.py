@@ -247,6 +247,7 @@ def update_model(self, **kwargs):
 		print(len(values))
 		new_history = PolicyParametersHistory.create_from_params(params)
 		new_history.parameters["update_size"] = len(values)
+		new_history.parameters["update_record"] = values.to_dict('records')
 		new_history.save()
 
 		rewards = values[parameters['outcome_variable']]
