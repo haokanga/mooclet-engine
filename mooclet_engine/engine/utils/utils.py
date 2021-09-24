@@ -101,6 +101,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #print("OUTCOMES")
     #print(len(outcomes))
     #values = values | outcomes
+
     print("values")
     print(values)
     print(len(values))
@@ -108,6 +109,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #variables.append(outcome)
     variables.remove('version')
     variables.extend(action_space.keys())
+    variables.append('version_added_later')
     print("variables")
     print(variables)
     vals_to_df = pd.DataFrame({},columns=variables)
@@ -136,6 +138,16 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         #transform mooclet version shown into dummified action
         #todo  silo off version as its own thing??? so that we always get most recent?
         if value.variable.name == 'version':
+                #get timestamp of version values
+                add_time = value.timestamp
+
+                if add_time < latest_update:
+                    print("new value invalid!")
+                    curr_user_values['version_added_later'] = False
+                else:
+                    print("new value valid!")
+                    curr_user_values['version_added_later'] = True
+
                 action_config = policyparams.parameters['action_space']
                 #this is the numerical representation from the config
                 #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
@@ -166,6 +178,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     # print(vals_to_df)
     if not vals_to_df.empty:
         output_df = vals_to_df.dropna()
+
+        #drop rows with version added before the latest update
+        output_df = output_df[output_df.version_added_later]
+
     else:
         output_df = vals_to_df
     # if vals_to_df :
@@ -175,4 +191,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     # else:
     #     output_df = pd.DataFrame()
     print(output_df)
+    output_df.drop(["version_added_later"], axis=1)
+    print(output_df)
+
     return output_df
