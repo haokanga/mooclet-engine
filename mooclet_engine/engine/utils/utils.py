@@ -141,6 +141,9 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 #get timestamp of version values
                 add_time = value.timestamp
 
+                if not latest_update:
+                    print("new value invalid!")
+                    curr_user_values['version_added_later'] = True
                 if add_time < latest_update:
                     print("new value invalid!")
                     curr_user_values['version_added_later'] = False
