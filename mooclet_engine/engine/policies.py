@@ -575,6 +575,18 @@ def thompson_sampling_contextual(variables, context):
 
 	version_to_show = version_to_show.get(version_json__contains=best_action)
 
+	if "precesion_draw" in parameters and parameters["precesion_draw"] == 1:
+		precesion, created = Variable.objects.get_or_create(name="precesion_draw")
+		Value.objects.create(variable=precesion, value=precesion_draw,
+							 text="precesion_draw", learner=context["learner"], mooclet=context["mooclet"],
+							 version=version_to_show)
+
+	if "coef_draw" in parameters and parameters["coef_draw"] == 1:
+		coef_sample, created = Variable.objects.get_or_create(name="coef_draw")
+		Value.objects.create(variable=coef_sample, value=coef_draw,
+							 text="coef_draw", learner=context["learner"], mooclet=context["mooclet"],
+							 version=version_to_show)
+
 	#TODO: convert best action into version
 	#version_to_show = {}
 	return version_to_show
@@ -623,6 +635,7 @@ def thompson_sampling_contextual_group(variables, context):
 	print('prior mean: ' + str(mean))
 	print('prior cov: ' + str(cov))
 	# Draw variance of errors
+	# TODO set to 1 for normal distribution
 	precesion_draw = invgamma.rvs(variance_a, 0, variance_b, size=1)
 
 	# Draw regression coefficients according to priors
@@ -807,6 +820,7 @@ def posteriors(y, X, m_pre, V_pre, a1_pre, a2_pre):
   #get the reward as a spearate vector. figure ut batch size issues (time based)
 
   # Data size
+
   datasize = len(y)
 
   # X transpose
