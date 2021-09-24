@@ -169,6 +169,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         print (curr_user_values)
     else:
         try:
+            curr_user_values['version_added_later'] = False
             vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
         except ValueError:
             print("duplicate data")
@@ -181,6 +182,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         print(output_df)
 
         #drop rows with version added before the latest update
+        print(output_df.version_added_later)
         output_df = output_df[output_df.version_added_later]
         print(output_df)
         output_df.drop(["version_added_later"], axis=1)
