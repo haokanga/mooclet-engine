@@ -142,7 +142,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 add_time = value.timestamp
 
                 if not latest_update:
-                    print("new value invalid!")
+                    print("new value valid!")
                     curr_user_values['version_added_later'] = True
                 elif add_time < latest_update:
                     print("new value invalid!")
