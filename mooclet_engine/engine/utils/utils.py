@@ -178,9 +178,13 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     # print(vals_to_df)
     if not vals_to_df.empty:
         output_df = vals_to_df.dropna()
+        print(output_df)
 
         #drop rows with version added before the latest update
         output_df = output_df[output_df.version_added_later]
+        print(output_df)
+        output_df.drop(["version_added_later"], axis=1)
+        print(output_df)
 
     else:
         output_df = vals_to_df
@@ -190,8 +194,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #     #print output_df.head()
     # else:
     #     output_df = pd.DataFrame()
-    print(output_df)
-    output_df.drop(["version_added_later"], axis=1)
     print(output_df)
 
     return output_df
