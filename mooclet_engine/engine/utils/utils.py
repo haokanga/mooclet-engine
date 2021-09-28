@@ -189,7 +189,8 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print(output_df.version_added_later)
             output_df = output_df[output_df.version_added_later]
             print(output_df)
-            output_df.drop(["version_added_later"], axis=1)
+            if not output_df.empty:
+                output_df.drop(["version_added_later"], axis=1)
         print(output_df)
     else:
         output_df = vals_to_df
