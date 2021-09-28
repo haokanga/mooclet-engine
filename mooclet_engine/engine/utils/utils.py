@@ -182,20 +182,14 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     # print("values df: ")
     # print(vals_to_df)
     if not vals_to_df.empty:
-        print("vals_to_df: NOT EMPTY")
-        print(vals_to_df)
-        if "version_added_later" not in vals_to_df.columns:
-            print("vals_to_df: don't have version_added_later")
-            print("columns: {}".format(vals_to_df.columns))
-        else:
-            vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
+        # print("vals_to_df: NOT EMPTY")
+        # print(vals_to_df)
+        assert "version_added_later" in vals_to_df.columns
 
-            if vals_to_df.empty:
-                print("vals_to_df: EMPTY")
-            else:
-                vals_to_df = vals_to_df.drop(["version_added_later"], axis=1)
-                print("vals_to_df: DROP version_added_later")
-                print(vals_to_df)
+        vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
+
+        if not vals_to_df.empty:
+            vals_to_df = vals_to_df.drop(["version_added_later"], axis=1)
 
         output_df = vals_to_df.dropna()
 
@@ -210,7 +204,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         #     print(output_df)
         #     if not output_df.empty:
         #         output_df.drop(["version_added_later"], axis=1)
-        print(output_df)
+        # print(output_df)
     else:
         output_df = vals_to_df
     # if vals_to_df :
@@ -219,6 +213,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #     #print output_df.head()
     # else:
     #     output_df = pd.DataFrame()
-    print(output_df)
+    # print(output_df)
 
     return output_df
