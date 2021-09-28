@@ -168,6 +168,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                     curr_user_values[action] = curr_action_config
         #UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
         else:
+            curr_user_values['version_added_later'] = False
             curr_user_values[value.variable.name] = value.value
         print (curr_user_values)
     else:
@@ -187,7 +188,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print("vals_to_df: don't have version_added_later")
             print("columns: {}".format(vals_to_df.columns))
         else:
-            vals_to_df = vals_to_df[vals_to_df.version_added_later]
+            vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
 
             if vals_to_df.empty:
                 print("vals_to_df: EMPTY")
