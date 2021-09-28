@@ -185,10 +185,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         print(output_df)
 
         #drop rows with version added before the latest update
-        print(output_df.version_added_later)
-        output_df = output_df[output_df.version_added_later]
-        print(output_df)
         if "version_added_later" in output_df:
+            print(output_df.version_added_later)
+            output_df = output_df[output_df.version_added_later]
+            print(output_df)
             output_df.drop(["version_added_later"], axis=1)
         print(output_df)
     else:
