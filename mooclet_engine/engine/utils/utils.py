@@ -91,6 +91,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     outcome = policyparams.parameters["outcome_variable"]
     action_space = policyparams.parameters["action_space"]
     variables.append(outcome)
+    temp = 1
 
     if not latest_update:
         values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet) #mooclet=mooclet
