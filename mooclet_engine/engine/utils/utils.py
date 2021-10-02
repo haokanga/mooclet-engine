@@ -91,12 +91,11 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     outcome = policyparams.parameters["outcome_variable"]
     action_space = policyparams.parameters["action_space"]
     variables.append(outcome)
-    temp = 1
 
     if not latest_update:
-        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet) #mooclet=mooclet
+        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, policy__name="thompson_sampling_contextual") #mooclet=mooclet
     else:
-        values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet)#.order_by('learner') #mooclet=mooclet
+        values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet, policy__name="thompson_sampling_contextual")#.order_by('learner') #mooclet=mooclet
         #TODO ONLY CARE ABOUT DATE ON OUTCOME
     #outcomes = Value.objects.filter(variable__name=outcome, mooclet=mooclet, policy=policyparams.policy).order_by('learner')
     #print("OUTCOMES")
