@@ -231,7 +231,8 @@ def update_model(self, **kwargs):
 	variance_b = parameters['variance_b']
 	latest_update = params.latest_update
 	values = values_to_df(mooclet, params, latest_update)
-	#print(values)
+	print("UPDATE_MODEL: values - ")
+	print(values)
 	# fix batch_size here: Might have to change to fix batch size for future use
 	if "batch_size" in parameters:
 		batch_size = parameters["batch_size"]
