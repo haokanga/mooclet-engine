@@ -176,9 +176,18 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
 
         if not vals_to_df.empty:
+            print("FILTER ADDED LATER: {}".format(vals_to_df.to_string()))
             vals_to_df = vals_to_df.drop(["version_added_later"], axis=1)
+            print("DROP ADDED LATER: {}".format(vals_to_df.to_string()))
+        else:
+            print("FILTER ADDED LATER: vals_to_df is EMPTY")
 
         output_df = vals_to_df.dropna()
+
+        if not output_df.empty:
+            print("output_df: {}".format(output_df.to_string()))
+        else:
+            print("output_df is EMPTY")
 
         # print(output_df)
         # if not output_df.empty:
