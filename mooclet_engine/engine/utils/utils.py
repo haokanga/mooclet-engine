@@ -112,7 +112,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     print("VALUES: {}, LENGTH: {}".format(values, len(values)))
 
     variables.append('user_id')
-    #variables.append(outcome)
+    # variables.append(outcome)
     variables.remove('version')
     variables.extend(action_space.keys())
     variables.append('version_added_later')
@@ -121,36 +121,46 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     vals_to_df = pd.DataFrame({},columns=variables)
     curr_user = None
     curr_user_values = {}
-    #TODO: if the variable is "version" get the mapping to actions
+    # TODO: if the variable is "version" get the mapping to actions
     for value in values:
         print("ADDED VALUE: variable: {}, learner: {}, version: {}, policy: {}, value: {}, text: {}".format(
             value.variable, value.learner, value.version, value.policy, value.value, value.text))
-        for context in contexts:
-            context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
-                                                  learner=value.learner).order_by('-timestamp')
-            if context_values.count() > 0:
-                curr_user_values[context] = context_values[0].value
-        #skip any values with no learners
+
+        # skip any values with no learners
         if not value.learner:
             continue
-        if curr_user is None:
-            curr_user = value.learner.id
-            curr_user_values = {'user_id': curr_user}
 
-        if value.learner.id != curr_user:
-            #append to df
+        # skip if context variables in value list
+        if value.variable in contexts:
+            continue
+
+        if curr_user is None:
+            curr_user = value.learner
+            curr_user_values = {'user_id': curr_user.id}
+
+        # append to df if current user is a new user (assume data e.g. reward, link are loaded)
+        if value.learner.id != curr_user.id:
+            # add context value to curr_user_values
+            for context in contexts:
+                # find the last context value
+                context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
+                                                      learner=curr_user).order_by('-timestamp')
+                if context_values.count() > 0:
+                    curr_user_values[context] = context_values[0].value
+            # append to df
             try:
                 vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
             except ValueError:
                 print("duplicate data: {}".format(curr_user_values))
                 pass
-            curr_user = value.learner.id
-            curr_user_values = {'user_id': curr_user}
+            # update current user
+            curr_user = value.learner
+            curr_user_values = {'user_id': curr_user.id}
 
-        #transform mooclet version shown into dummified action
-        #todo  silo off version as its own thing??? so that we always get most recent?
+        # transform mooclet version shown into dummified action
+        # todo  silo off version as its own thing??? so that we always get most recent?
         if value.variable.name == 'version':
-                #get timestamp of version values
+                # get timestamp of version values
                 add_time = value.timestamp
 
                 if not latest_update:
@@ -161,19 +171,17 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                     curr_user_values['version_added_later'] = True
 
                 action_config = policyparams.parameters['action_space']
-                #this is the numerical representation from the config
-                #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
-
+                # this is the numerical representation from the config
+                # IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
                 for action in action_config:
                     curr_action_config = value.version.version_json[action]
                     curr_user_values[action] = curr_action_config
-        #UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
+        # UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
         else:
             curr_user_values['version_added_later'] = False
             curr_user_values[value.variable.name] = value.value
     else:
         try:
-            curr_user_values['version_added_later'] = False
             vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
         except ValueError:
             print("duplicate data")
