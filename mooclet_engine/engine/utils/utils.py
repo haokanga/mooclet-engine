@@ -88,6 +88,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     """
     Value = apps.get_model('engine', 'Value')
     variables = list(policyparams.parameters["contextual_variables"])
+    contexts = []
+    for context in variables:
+        if context != "version":
+            contexts.append(context)
     outcome = policyparams.parameters["outcome_variable"]
     action_space = policyparams.parameters["action_space"]
     variables.append(outcome)
@@ -113,6 +117,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     variables.extend(action_space.keys())
     variables.append('version_added_later')
     print("variables: {}".format(variables))
+    print("contexts: {}".format(contexts))
     vals_to_df = pd.DataFrame({},columns=variables)
     curr_user = None
     curr_user_values = {}
@@ -120,6 +125,9 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     for value in values:
         print("ADDED VALUE: variable: {}, learner: {}, version: {}, policy: {}, value: {}, text: {}".format(
             value.variable, value.learner, value.version, value.policy, value.value, value.text))
+
+
+
         #skip any values with no learners
         if not value.learner:
             continue
