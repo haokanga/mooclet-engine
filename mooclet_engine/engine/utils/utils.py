@@ -170,7 +170,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     print("values df: {}".format(vals_to_df))
     print("empty? {}".format(vals_to_df.empty))
     if not vals_to_df.empty:
-        print("NOT EMPTY: {}".format(vals_to_df))
+        print("NOT EMPTY: {}".format(vals_to_df.to_string()))
         assert "version_added_later" in vals_to_df.columns
 
         vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
