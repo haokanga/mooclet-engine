@@ -129,7 +129,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
                                                   learner=value.learner).order_by('-timestamp')
             if context_values.count() > 0:
-                vals_to_df[context] = context_values[0].value
+                curr_user_values[context] = context_values[0].value
         #skip any values with no learners
         if not value.learner:
             continue
