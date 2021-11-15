@@ -180,13 +180,23 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         else:
             curr_user_values['version_added_later'] = False
             curr_user_values[value.variable.name] = value.value
-    else:
+
+    # add context value to the last row of dataframe
+    if curr_user:
+        # add context value to curr_user_values
+        for context in contexts:
+            # find the last context value
+            context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
+                                                  learner=curr_user).order_by('-timestamp')
+            if context_values.count() > 0:
+                curr_user_values[context] = context_values[0].value
         try:
             vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
         except ValueError:
             print("duplicate data")
             print(curr_user_values)
             pass
+
     print("values df: {}".format(vals_to_df))
     print("empty? {}".format(vals_to_df.empty))
     if not vals_to_df.empty:
