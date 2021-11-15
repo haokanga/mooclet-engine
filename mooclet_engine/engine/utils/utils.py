@@ -118,6 +118,8 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     curr_user_values = {}
     #TODO: if the variable is "version" get the mapping to actions
     for value in values:
+        print("ADDED VALUE: variable: {}, learner: {}, version: {}, policy: {}, value: {}, text: {}".format(
+            value.variable, value.learner, value.version, value.policy, value.value, value.text))
         #skip any values with no learners
         if not value.learner:
             continue
@@ -210,6 +212,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #     #print output_df.head()
     # else:
     #     output_df = pd.DataFrame()
-    print("outpuyt_df: {}".format(output_df))
+    print("output_df: {}".format(output_df))
 
     return output_df
