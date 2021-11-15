@@ -92,9 +92,12 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     action_space = policyparams.parameters["action_space"]
     variables.append(outcome)
 
+    print("CHECK latest_update:")
     if not latest_update:
+        print("last update is NONE")
         values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, policy__name="thompson_sampling_contextual") #mooclet=mooclet
     else:
+        print("last update is {}".format(latest_update))
         values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet, policy__name="thompson_sampling_contextual") #.order_by('learner') #mooclet=mooclet
         #TODO ONLY CARE ABOUT DATE ON OUTCOME
     #outcomes = Value.objects.filter(variable__name=outcome, mooclet=mooclet, policy=policyparams.policy).order_by('learner')
@@ -102,16 +105,14 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #print(len(outcomes))
     #values = values | outcomes
 
-    print("values")
-    print(values)
-    print(len(values))
+    print("VALUES: {}, LENGTH: {}".format(values, len(values)))
+
     variables.append('user_id')
     #variables.append(outcome)
     variables.remove('version')
     variables.extend(action_space.keys())
     variables.append('version_added_later')
-    print("variables")
-    print(variables)
+    print("variables: {}".format(variables))
     vals_to_df = pd.DataFrame({},columns=variables)
     curr_user = None
     curr_user_values = {}
@@ -129,8 +130,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             try:
                 vals_to_df = vals_to_df.append(curr_user_values, ignore_index=True)
             except ValueError:
-                print("duplicate data")
-                print(curr_user_values)
+                print("duplicate data: {}".format(curr_user_values))
                 pass
             curr_user = value.learner.id
             curr_user_values = {'user_id': curr_user}
@@ -142,13 +142,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 add_time = value.timestamp
 
                 if not latest_update:
-                    print("new value valid!")
                     curr_user_values['version_added_later'] = True
                 elif add_time < latest_update:
-                    print("new value invalid!")
                     curr_user_values['version_added_later'] = False
                 else:
-                    print("new value valid!")
                     curr_user_values['version_added_later'] = True
 
                 action_config = policyparams.parameters['action_space']
@@ -156,21 +153,12 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 #IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
 
                 for action in action_config:
-                    # print("values_to_df: action: {}, {}".format(action, type(action)))
-                    # action = action.encode('utf-8')
-                    # print("values_to_df: action: {}, {}".format(action, type(action)))
-                    # print("values_to_df: value.version: {}".format(value.version))
-                    # print("values_to_df: value.version.version_json: {}".format(value.version.version_json))
-                    # print("values_to_df: value.version.version_json[is_arm5_round_1]: {}".format(value.version.version_json["is_arm5_round_1"]))
-                    # print("current_version_json: ")
-                    # print(value.version.version_json)
                     curr_action_config = value.version.version_json[action]
                     curr_user_values[action] = curr_action_config
         #UNLESS IT IS AN OUTCOME IN WHICH CASE HANDLE AS ABOVE AND DISCARD
         else:
             curr_user_values['version_added_later'] = False
             curr_user_values[value.variable.name] = value.value
-        print (curr_user_values)
     else:
         try:
             curr_user_values['version_added_later'] = False
@@ -179,11 +167,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print("duplicate data")
             print(curr_user_values)
             pass
-    # print("values df: ")
-    # print(vals_to_df)
+    print("values df: {}".format(vals_to_df))
+    print("empty? {}".format(vals_to_df.empty))
     if not vals_to_df.empty:
-        # print("vals_to_df: NOT EMPTY")
-        # print(vals_to_df)
+        print("NOT EMPTY: {}".format(vals_to_df))
         assert "version_added_later" in vals_to_df.columns
 
         vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
@@ -206,6 +193,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         #         output_df.drop(["version_added_later"], axis=1)
         # print(output_df)
     else:
+        print("EMPTY: {}".format(vals_to_df))
         output_df = vals_to_df
     # if vals_to_df :
     #     output_df = pd.concat(vals_to_df)
@@ -213,6 +201,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #     #print output_df.head()
     # else:
     #     output_df = pd.DataFrame()
-    # print(output_df)
+    print("outpuyt_df: {}".format(output_df))
 
     return output_df
