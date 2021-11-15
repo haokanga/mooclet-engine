@@ -126,9 +126,8 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         print("ADDED VALUE: variable: {}, learner: {}, version: {}, policy: {}, value: {}, text: {}".format(
             value.variable, value.learner, value.version, value.policy, value.value, value.text))
         for context in contexts:
-            context_values = Value.objects.filter(variable__name__in=context,
-                                                 mooclet=mooclet,
-                                                 learner=value.learner).order_by('-time_stamp')
+            context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
+                                                  learner=value.learner).order_by('-time_stamp')
             if context_values.count() > 0:
                 vals_to_df[context] = context_values[0]
         #skip any values with no learners
