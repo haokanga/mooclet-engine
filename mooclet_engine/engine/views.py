@@ -101,7 +101,7 @@ class VariableViewSet(viewsets.ModelViewSet):
 class ValueViewSet(viewsets.ModelViewSet):
     queryset = Value.objects.all()
     serializer_class = ValueSerializer
-    filter_fields = ('learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
+    filter_fields = ('learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name', 'policy',)
     search_fields = ('learner__name', 'variable__name',)
     ordering_fields = ('timestamp','learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
 
