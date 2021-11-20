@@ -99,10 +99,10 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     print("CHECK latest_update:")
     if not latest_update:
         print("last update is NONE")
-        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, policy__name="thompson_sampling_contextual")
+        values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, policy__name="thompson_sampling_contextual").order_by('timestamp')
     else:
         print("last update is {}".format(latest_update))
-        values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet, policy__name="thompson_sampling_contextual")
+        values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet, policy__name="thompson_sampling_contextual").order_by('timestamp')
 
     print("VALUES: {}, LENGTH: {}".format(values, len(values)))
 
