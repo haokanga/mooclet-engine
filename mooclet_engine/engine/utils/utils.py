@@ -137,9 +137,9 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print(vals_to_df.to_string())
             add_time = value.timestamp
             if not latest_update or add_time >= latest_update:
-                vals_to_df['version_added_later'][index] = True
+                vals_to_df.loc[index, 'version_added_later'] = True
             else:
-                vals_to_df['version_added_later'][index] = False
+                vals_to_df.loc[index, 'version_added_later'] = False
             print("version_add_later logged")
             print(vals_to_df.to_string())
             action_config = policyparams.parameters['action_space']
@@ -147,7 +147,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             # IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
             for action in action_config:
                 curr_action_config = value.version.version_json[action]
-                vals_to_df[action][index] = curr_action_config
+                vals_to_df.loc[index, action] = curr_action_config
 
             assigned[value.learner.id] = index
             print("assigned: {}".format(assigned))
@@ -157,7 +157,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             print("assigned: {}".format(assigned))
             if value.learner.id not in assigned:
                 continue
-            vals_to_df[outcome][assigned[value.learner.id]] = value.value
+            vals_to_df.loc[assigned[value.learner.id], outcome] = value.value
             print("value logged")
             print(vals_to_df.to_string())
 
@@ -168,7 +168,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
                                                       learner=value.learner).order_by('-timestamp')
                 if context_values.count() > 0:
-                    vals_to_df[context][assigned[value.learner.id]] = context_values[0].value
+                    vals_to_df.loc[assigned[value.learner.id], context] = context_values[0].value
                     print("context logged")
                     print(vals_to_df.to_string())
 
