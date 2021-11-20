@@ -121,24 +121,30 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         if not value.learner:
             continue
 
+        print("VARIABLE NAME: {}".format(value.variable.name))
+
         # skip if value is not version or reward
-        if value.variable not in ["version", outcome]:
+        if value.variable.name not in ["version", outcome]:
             continue
 
-        if value.variable == "version":
+        if value.variable.name == "version":
             vals_to_df = vals_to_df.append({'user_id': value.learner.id}, ignore_index=True)
+            print("NEW USER!")
+            print(vals_to_df.to_string())
             add_time = value.timestamp
             if not latest_update or add_time >= latest_update:
                 vals_to_df['version_added_later'][index] = True
             else:
                 vals_to_df['version_added_later'][index] = False
-
+            print("version_add_later logged")
+            print(vals_to_df.to_string())
             action_config = policyparams.parameters['action_space']
             # this is the numerical representation from the config
             # IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
             for action in action_config:
                 curr_action_config = value.version.version_json[action]
                 vals_to_df[action][index] = curr_action_config
+
             assigned[value.learner.id] = index
             index += 1
         else:
