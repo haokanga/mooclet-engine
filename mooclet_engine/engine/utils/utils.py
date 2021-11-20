@@ -113,10 +113,14 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     variables.append('version_added_later')
     print("variables: {}".format(variables))
     print("contexts: {}".format(contexts))
+    print("outcome: {}".format(outcome))
     vals_to_df = pd.DataFrame({},columns=variables)
     index = 0
     assigned = {}
     for value in values:
+        print("ADDED VALUE: variable: {}, learner: ({}, {}), version: {}, policy: {}, value: {}, text: {}".format(
+                 value.variable.name, value.learner.id, value.learner.name,
+            value.version.text, value.policy.policy_id, value.value, value.text))
         # skip any values with no learners
         if not value.learner:
             continue
@@ -146,19 +150,27 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 vals_to_df[action][index] = curr_action_config
 
             assigned[value.learner.id] = index
+            print("assigned: {}".format(assigned))
             index += 1
         else:
+            print("VALUE FOUND: User {}, ".format(value.learner.id))
+            print("assigned: {}".format(assigned))
             if value.learner.id not in assigned:
                 continue
             vals_to_df[outcome][assigned[value.learner.id]] = value.value
+            print("value logged")
+            print(vals_to_df.to_string())
 
             # add context value to vals_to_df
             for context in contexts:
+                print("ADD CONTEXTS")
                 # find the last context value
                 context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
                                                       learner=value.learner).order_by('-timestamp')
                 if context_values.count() > 0:
                     vals_to_df[context][assigned[value.learner.id]] = context_values[0].value
+                    print("context logged")
+                    print(vals_to_df.to_string())
 
     # # curr_user_values = {}
     # # TODO: if the variable is "version" get the mapping to actions
