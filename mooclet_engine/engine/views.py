@@ -2,38 +2,30 @@ from rest_framework import viewsets
 from rest_pandas import PandasView
 from .models import *
 from .serializers import *
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 import pandas as pd
+import numpy as np
 import json
 
 # rest framework viewsets
 
 class MoocletViewSet(viewsets.ModelViewSet):
-    """
-    MOOClets are the building blocks of experiments/RCTs via web service.
 
-    retrieve:
-        Return the given MOOClet.
-
-    list:
-        Return a list of all the existing MOOClets.
-
-    create:
-        Create a new MOOClet instance.
-    """
 
     queryset = Mooclet.objects.all()
     serializer_class = MoocletSerializer
     #lookup_field = 'name'
     search_fields = ('name',)
 
-    @detail_route()
+    @action(detail=True)
     def test(self, request, pk=None):
         return Response({'test':'hi'})
 
-    @detail_route()
+    @action(detail=True)
     def run(self, request, pk=None):
         policy = request.GET.get('policy',None)
         context = {}
@@ -54,9 +46,10 @@ class MoocletViewSet(viewsets.ModelViewSet):
         else:
             version_id = version.id
             version_name = version.name
-            serialized_version = VersionSerializer(version).data
+            serialized_version = VersionSerializer(version).data#.save()
+            #serialized_version = serialized_version.data
 
-        version_shown = Value( 
+        version_shown = Value(
                             learner=learner,
                             variable=Version,
                             mooclet=self.get_object(),
@@ -108,11 +101,11 @@ class VariableViewSet(viewsets.ModelViewSet):
 class ValueViewSet(viewsets.ModelViewSet):
     queryset = Value.objects.all()
     serializer_class = ValueSerializer
-    filter_fields = ('learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
+    filter_fields = ('learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name', 'policy',)
     search_fields = ('learner__name', 'variable__name',)
     ordering_fields = ('timestamp','learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
 
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def create_many(self, request, pk=None):
         queryset = Value.objects.all()
         serializer = ValueSerializer(many=True, data=request.data)
@@ -122,13 +115,13 @@ class ValueViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error':'invalid'}, status=500)
 
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def create_many_fromobj(self, request, pk=None):
         queryset = Value.objects.all()
         print("Data:")
         print(request.data)
 
-        vals = request.data[request.data.keys()[0]]
+        vals = request.data[list(request.data.keys())[0]]
         try:
             vals = json.loads(vals)
         except:
@@ -196,3 +189,25 @@ class PolicyParametersHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PolicyParametersHistory.objects.all()
     serializer_class = PolicyParametersHistorySerializer
     filter_fields = ('mooclet', 'policy')
+
+
+class getBinaryContextualImputer(APIView):
+    def get(self, request):
+        req = json.loads(request.body)
+
+        if req['name'] is None or req['mooclet'] is None:
+            return Response({'error':'invalid'}, status=500)
+
+        imputer = {}
+        values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet'])
+        num_values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet']).count()
+
+        if num_values == 0:
+            imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
+        else:
+            sum_values = values.aggregate(Sum('value'))
+            sum_values = sum_values['value__sum']
+            binary_t_prop = sum_values/num_values
+            imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
+
+        return Response(imputer)

@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import redirect
-import policies
+from . import policies
 from django.http import Http404
 from django.utils import timezone
 
@@ -25,7 +25,7 @@ class Mooclet(models.Model):
     # class Meta:
     #     unique_together = ('environment','mooclet_id')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}: {}".format(self.__class__.__name__, self.name)
 
     def run(self, policy=None, context={}):
@@ -50,7 +50,7 @@ class Version(models.Model):
     '''
     
     name = models.CharField(max_length=200,default='')
-    mooclet = models.ForeignKey(Mooclet)
+    mooclet = models.ForeignKey(Mooclet,on_delete=models.SET_NULL,null=True)
     text = models.TextField(blank=True,default='')
     version_id = models.PositiveIntegerField(blank=True,null=True)
     # mooclet_version_id = models.PositiveIntegerField(blank=True)
@@ -63,7 +63,7 @@ class Version(models.Model):
     class Meta:
         unique_together = ('mooclet','name')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} {}: {}".format(self.__class__.__name__, self.pk, self.name)
 
 
@@ -85,7 +85,7 @@ class Variable(models.Model):
     environment = models.ForeignKey(Environment,blank=True,null=True, default=None, on_delete=models.SET_NULL)
     variable_id = models.PositiveIntegerField(blank=True,null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
         #return "{} {}: {}".format(self.__class__.__name__, self.pk, self.name)
 
@@ -122,7 +122,7 @@ class Value(models.Model):
         mooclet: ?
         version: student rating of an explanation, instructors prior judgement
     '''
-    variable = models.ForeignKey(Variable)
+    variable = models.ForeignKey(Variable,on_delete=models.SET_NULL,null=True)
 
     learner = models.ForeignKey(Learner,null=True,blank=True, on_delete=models.SET_NULL)
     mooclet = models.ForeignKey(Mooclet,null=True,blank=True, on_delete=models.SET_NULL)
@@ -162,14 +162,14 @@ class Policy(models.Model):
         verbose_name_plural = 'policies'
         unique_together = ('environment','policy_id')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_policy_function(self):
         try:
             return getattr(policies, self.name)
         except:
-            print "policy function matching specified name not found"
+            print ("policy function matching specified name not found")
             # TODO look through custom user-provided functions
             return None
 
@@ -198,8 +198,8 @@ class Policy(models.Model):
         return version
 
 class PolicyParameters(models.Model):
-    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None)
-    policy = models.ForeignKey(Policy)
+    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL,null=True)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     latest_update = models.DateTimeField(null=True, blank=True)
@@ -208,12 +208,12 @@ class PolicyParameters(models.Model):
         verbose_name_plural = 'policyparameters'
         unique_together = ('mooclet', 'policy')
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}, Policy: {}".format(self.mooclet, self.policy)
 
 class PolicyParametersHistory(models.Model):
-    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None)
-    policy = models.ForeignKey(Policy)
+    mooclet = models.ForeignKey(Mooclet, null=True, blank=True, default=None,on_delete=models.SET_NULL)
+    policy = models.ForeignKey(Policy,on_delete=models.SET_NULL, null=True)
     #make this a jsonfield
     parameters = JSONField(null=True, blank=True)
     creation_time = models.DateTimeField(null=True, blank=True, auto_now_add=True)
@@ -223,7 +223,7 @@ class PolicyParametersHistory(models.Model):
         ordering = ['creation_time']
         #unique_together = ()
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}, Policy: {}, created: {}".format(self.mooclet, self.policy, self.creation_time)
 
     @classmethod

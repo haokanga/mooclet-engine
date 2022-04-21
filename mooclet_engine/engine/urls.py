@@ -16,9 +16,10 @@ router.register(r'policyparametershistory', views.PolicyParametersHistoryViewSet
 
 #for using name instead of pk
 router.register(r'version-name', views.VersionNameViewSet)
-
+app_name = 'engine'
 urlpatterns = [
-	url(r'^api/v1/', include(router.urls, namespace='v1')),
+	url(r'^api/v1/', include((router.urls, app_name), namespace='v1')),
 	url(r'^data', views.PandasValueViewSet.as_view()),
-	url(r'^learner-data', views.PandasLearnerValueViewSet.as_view())
+	url(r'^learner-data', views.PandasLearnerValueViewSet.as_view()),
+	url(r'^api/getBinaryContextualImputer/', views.getBinaryContextualImputer.as_view())
 ]

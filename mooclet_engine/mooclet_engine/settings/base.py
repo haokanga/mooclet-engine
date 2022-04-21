@@ -11,9 +11,9 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from os.path import abspath, basename, dirname, join, normpath
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 from sys import path
-import secure
+from . import secure
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 # BASE DIR refers to the directory containing manage.py
@@ -83,10 +83,25 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+
+    # the next MIDDLWARE_CLASSES item had to be taken off due to the following bug in runserver
+    # AttributeError: module 'django.contrib.auth.middleware' has no attribute 'SessionAuthenticationMiddleware'
+    # the above error was a direct cause of the following error
+    # ImportError: Module "django.contrib.auth.middleware" does not define a "SessionAuthenticationMiddleware" attribute/class
+    # django.core.exceptions.ImproperlyConfigured: WSGI application 'mooclet_engine.wsgi.application' could not be loaded; Error importing module.
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+
     'django.middleware.common.BrokenLinkEmailsMiddleware',
 )
+
+
+# Fix for bug
+# ?: (admin.E408) 'django.contrib.auth.middleware.AuthenticationMiddleware' must be in MIDDLEWARE in order to use the admin application.
+# ?: (admin.E409) 'django.contrib.messages.middleware.MessageMiddleware' must be in MIDDLEWARE in order to use the admin application.
+# ?: (admin.E410) 'django.contrib.sessions.middleware.SessionMiddleware' must be in MIDDLEWARE in order to use the admin application.
+MIDDLEWARE = MIDDLEWARE_CLASSES
+
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
@@ -152,12 +167,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 # Additional locations of static files
-STATICFILES_DIRS = (
+#STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    normpath(join(SITE_ROOT, 'static')),
-)
+    #normpath(join(SITE_ROOT, 'static')),
+#)
+
+STATIC_URL = '/static/'
 
 #### django-bootstrap ####
 BOOTSTRAP3 = {
