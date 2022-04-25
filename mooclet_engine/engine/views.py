@@ -263,6 +263,6 @@ class getContextualImputer(APIView):
                 mooclet=mooclet
             )
 
-            imputer["context_var"] = sample
+            imputer["imputer"] = sample
 
         return Response(imputer)
