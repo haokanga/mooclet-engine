@@ -81,9 +81,21 @@ class Learner(models.Model):
 
 
 class Variable(models.Model):
+    BINARY = 'BIN'
+    ORDINARY = 'ORD'
+    CONTINUOUS = 'CONT'
+    VARIABLE_TYPE = (
+        (BINARY, 'binary'), 
+        (ORDINARY, 'ordinary'), 
+        (CONTINUOUS, 'continuous')
+    )
     name = models.CharField(max_length=100, unique=True)
     environment = models.ForeignKey(Environment,blank=True,null=True, default=None, on_delete=models.SET_NULL)
     variable_id = models.PositiveIntegerField(blank=True,null=True)
+    min_value = models.FloatField(default=0.0)
+    max_value = models.FloatField(default=1.0)
+    value_type = models.CharField(max_length=100, choices=VARIABLE_TYPE, default=BINARY)
+    sample_thres = models.PositiveIntegerField(default=15)
 
     def __str__(self):
         return self.name

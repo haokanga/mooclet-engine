@@ -211,3 +211,58 @@ class getBinaryContextualImputer(APIView):
             imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
 
         return Response(imputer)
+
+
+class getContextualImputer(APIView):
+    def get(self, request):
+        req = json.loads(request.body)
+        has_learner = request.args.get("learner")
+        has_mooclet = request.args.get("mooclet")
+        has_policy = request.args.get("policy")
+        has_contexts = request.args.get("contexts")
+
+        if has_learner is None or has_mooclet is None or has_policy is None:
+            return Response({"error": "invalid"}, status=500)
+        
+        mooclet = Mooclet.objects.get(pk=req["mooclet"])
+        learner = Learner.objects.get(name=req["learner"])
+        policy = Policy.objects.get(pk=req["policy"])
+
+        if has_contexts is None:
+            contextual_vars = req["contexts"]
+        else:
+            mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
+            parameters = mooclet_params.parameters
+            contextual_vars = list(filter(lambda context: context != "version", parameters["contextual_variables"]))
+
+        imputer = {}
+        for context_var in contextual_vars:
+            variable = Variable.objects.filter(name=context_var)
+            val_type = variable.value_type
+            val_min = variable.min_value
+            val_max = variable.max_value
+            sample_thres = variable.sample_thres
+            values = Value.objects.filter(variable__name=context_var, mooclet=mooclet)
+            num_values = values.count()
+
+            if num_values == 0 or num_values < sample_thres:
+                if val_type != "continuous":
+                    sample = np.random.choice(np.arange(val_min, val_max + 1))
+                else:
+                    sample = np.random.uniform(val_min, val_max)
+                    sample = (sample - val_min) / (val_max - val_min)
+            else:
+                val_lst = list(values.value_list("value"))
+                sample = np.random.choice(val_lst)
+            
+            Value.objects.create(
+                variable=variable, 
+                value=sample, 
+                text="Init Context",
+                learner=learner,
+                mooclet=mooclet
+            )
+
+            imputer["context_var"] = sample
+
+        return Response(imputer)
