@@ -237,7 +237,6 @@ class ContextualImputer(APIView):
                 return Response({"error": f"contextual variable {context_var} is invalid"}, status=500)
             variable = Variable.objects.filter(name=context_var).last()
             val_type = variable.value_type
-            print(f"variable type: {val_type}")
             val_min = variable.min_value
             val_max = variable.max_value
             sample_thres = variable.sample_thres
@@ -245,7 +244,7 @@ class ContextualImputer(APIView):
             num_values = values.count()
 
             if num_values == 0 or num_values < sample_thres:
-                if val_type != "continuous":
+                if val_type != Variable.CONTINUOUS:
                     sample = np.random.choice(np.arange(val_min, val_max + 1))
                 else:
                     sample = np.random.uniform(val_min, val_max)
