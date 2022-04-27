@@ -248,7 +248,7 @@ class ContextualImputer(APIView):
                     sample = np.random.choice(np.arange(val_min, val_max + 1))
                 else:
                     sample = np.random.uniform(val_min, val_max)
-                    sample = (sample - val_min) / (val_max - val_min)
+                sample = (sample - val_min) / (val_max - val_min)
             else:
                 val_lst = list(values.value_list("value"))
                 sample = np.random.choice(val_lst)
@@ -261,6 +261,6 @@ class ContextualImputer(APIView):
                 mooclet=mooclet
             )
 
-            imputer["imputer"] = sample
+            imputer[context_var] = sample
 
-        return Response(imputer)
+        return Response({"imputers": imputer})
