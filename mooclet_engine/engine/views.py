@@ -218,22 +218,24 @@ class ContextualImputer(APIView):
         req = json.loads(request.body)
 
         if not all(key in req for key in ("learner", "mooclet", "policy")):
-            return Response({"error": "invalid"}, status=500)
+            return Response({"error": "invalid request"}, status=500)
 
         mooclet = Mooclet.objects.get(pk=req["mooclet"])
         learner = Learner.objects.get(name=req["learner"])
         policy = Policy.objects.get(pk=req["policy"])
 
+        mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
+        parameters = mooclet_params.parameters
         if "contexts" in req:
             contextual_vars = req["contexts"]
         else:
-            mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
-            parameters = mooclet_params.parameters
             contextual_vars = list(filter(lambda context: context != "version", parameters["contextual_variables"]))
 
         imputer = {}
         for context_var in contextual_vars:
-            variable = Variable.objects.filter(name=context_var)
+            if context_var not in parameters["contextual_variables"]:
+                return Response({"error": f"contextual variable {context_var} is invalid"}, status=500)
+            variable = Variable.objects.filter(name=context_var).last()
             val_type = variable.value_type
             val_min = variable.min_value
             val_max = variable.max_value
