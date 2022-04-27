@@ -96,12 +96,12 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     action_space = policyparams.parameters["action_space"]
     variables.append(outcome)
 
-    print("CHECK latest_update:")
+    # print("CHECK latest_update:")
     if not latest_update:
-        print("last update is NONE")
+        # print("last update is NONE")
         values = Value.objects.filter(variable__name__in=variables, mooclet=mooclet, policy__name="thompson_sampling_contextual").order_by('timestamp')
     else:
-        print("last update is {}".format(latest_update))
+        # print("last update is {}".format(latest_update))
         values = Value.objects.filter(variable__name__in=variables, timestamp__gte=latest_update, mooclet=mooclet, policy__name="thompson_sampling_contextual").order_by('timestamp')
 
     print("VALUES: {}, LENGTH: {}".format(values, len(values)))
@@ -118,14 +118,14 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     index = 0
     assigned = {}
     for value in values:
-        print("ADDED VALUE: variable: {}, learner: ({}, {}), version: {}, policy: {}, value: {}, text: {}".format(
-                 value.variable.name, value.learner.id, value.learner.name,
-            value.version.text, value.policy.policy_id, value.value, value.text))
+        # print("ADDED VALUE: variable: {}, learner: ({}, {}), version: {}, policy: {}, value: {}, text: {}".format(
+        #          value.variable.name, value.learner.id, value.learner.name,
+        #     value.version.text, value.policy.policy_id, value.value, value.text))
         # skip any values with no learners
         if not value.learner:
             continue
 
-        print("VARIABLE NAME: {}".format(value.variable.name))
+        # print("VARIABLE NAME: {}".format(value.variable.name))
 
         # skip if value is not version or reward
         if value.variable.name not in ["version", outcome]:
@@ -133,15 +133,15 @@ def values_to_df(mooclet, policyparams, latest_update=None):
 
         if value.variable.name == "version":
             vals_to_df = vals_to_df.append({'user_id': value.learner.id}, ignore_index=True)
-            print("NEW USER!")
-            print(vals_to_df.to_string())
+            # print("NEW USER!")
+            # print(vals_to_df.to_string())
             add_time = value.timestamp
             if not latest_update or add_time >= latest_update:
                 vals_to_df.loc[index, 'version_added_later'] = True
             else:
                 vals_to_df.loc[index, 'version_added_later'] = False
-            print("version_add_later logged")
-            print(vals_to_df.to_string())
+            # print("version_add_later logged")
+            # print(vals_to_df.to_string())
             action_config = policyparams.parameters['action_space']
             # this is the numerical representation from the config
             # IN THIS STEP ALSO GET AN OUTCOME RELATED TO THIS VERSION
@@ -150,27 +150,27 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 vals_to_df.loc[index, action] = curr_action_config
 
             assigned[value.learner.id] = index
-            print("assigned: {}".format(assigned))
+            # print("assigned: {}".format(assigned))
             index += 1
         else:
-            print("VALUE FOUND: User {}, ".format(value.learner.id))
-            print("assigned: {}".format(assigned))
+            # print("VALUE FOUND: User {}, ".format(value.learner.id))
+            # print("assigned: {}".format(assigned))
             if value.learner.id not in assigned:
                 continue
             vals_to_df.loc[assigned[value.learner.id], outcome] = value.value
-            print("value logged")
-            print(vals_to_df.to_string())
+            # print("value logged")
+            # print(vals_to_df.to_string())
 
             # add context value to vals_to_df
             for context in contexts:
-                print("ADD CONTEXTS")
+                # print("ADD CONTEXTS")
                 # find the last context value
                 context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
                                                       learner=value.learner).order_by('-timestamp')
                 if context_values.count() > 0:
                     vals_to_df.loc[assigned[value.learner.id], context] = context_values[0].value
-                    print("context logged")
-                    print(vals_to_df.to_string())
+                    # print("context logged")
+                    # print(vals_to_df.to_string())
 
     # # curr_user_values = {}
     # # TODO: if the variable is "version" get the mapping to actions
@@ -249,27 +249,27 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #         print(curr_user_values)
     #         pass
 
-    print("values df: {}".format(vals_to_df))
-    print("empty? {}".format(vals_to_df.empty))
+    # print("values df: {}".format(vals_to_df))
+    # print("empty? {}".format(vals_to_df.empty))
     if not vals_to_df.empty:
-        print("NOT EMPTY: {}".format(vals_to_df.to_string()))
+        # print("NOT EMPTY: {}".format(vals_to_df.to_string()))
         assert "version_added_later" in vals_to_df.columns
 
         vals_to_df = vals_to_df[vals_to_df["version_added_later"] == True]
 
         if not vals_to_df.empty:
-            print("FILTER ADDED LATER: {}".format(vals_to_df.to_string()))
+            # print("FILTER ADDED LATER: {}".format(vals_to_df.to_string()))
             vals_to_df = vals_to_df.drop(["version_added_later"], axis=1)
-            print("DROP ADDED LATER: {}".format(vals_to_df.to_string()))
-        else:
-            print("FILTER ADDED LATER: vals_to_df is EMPTY")
+            # print("DROP ADDED LATER: {}".format(vals_to_df.to_string()))
+        # else:
+        #     print("FILTER ADDED LATER: vals_to_df is EMPTY")
 
         output_df = vals_to_df.dropna()
 
-        if not output_df.empty:
-            print("output_df: {}".format(output_df.to_string()))
-        else:
-            print("output_df is EMPTY")
+        # if not output_df.empty:
+        #     print("output_df: {}".format(output_df.to_string()))
+        # else:
+        #     print("output_df is EMPTY")
 
         # print(output_df)
         # if not output_df.empty:
@@ -284,7 +284,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
         #         output_df.drop(["version_added_later"], axis=1)
         # print(output_df)
     else:
-        print("EMPTY: {}".format(vals_to_df))
+        # print("EMPTY: {}".format(vals_to_df))
         output_df = vals_to_df
     # if vals_to_df :
     #     output_df = pd.concat(vals_to_df)
@@ -292,6 +292,6 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     #     #print output_df.head()
     # else:
     #     output_df = pd.DataFrame()
-    print("output_df: {}".format(output_df))
+    # print("output_df: {}".format(output_df))
 
     return output_df
