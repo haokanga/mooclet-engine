@@ -36,6 +36,7 @@ class ValueSerializer(WritableNestedModelSerializer):
     #version_name = serializers.SlugRelatedField(slug_field='name', queryset=Version.objects.all(), allow_null=True)
     class Meta:
         model = Value
+        ordering = ('timestamp',)
         fields = ('id', 'variable','learner','mooclet','version','policy','value','text','timestamp',)
 
     # def validate_variable(self ,variable):
