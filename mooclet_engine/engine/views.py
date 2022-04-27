@@ -216,19 +216,15 @@ class PolicyParametersHistoryViewSet(viewsets.ReadOnlyModelViewSet):
 class ContextualImputer(APIView):
     def post(self, request):
         req = json.loads(request.body)
-        has_learner = request.args.get("learner")
-        has_mooclet = request.args.get("mooclet")
-        has_policy = request.args.get("policy")
-        has_contexts = request.args.get("contexts")
 
-        if has_learner is None or has_mooclet is None or has_policy is None:
+        if not all(key in req for key in ("learner", "mooclet", "policy")):
             return Response({"error": "invalid"}, status=500)
-        
+
         mooclet = Mooclet.objects.get(pk=req["mooclet"])
         learner = Learner.objects.get(name=req["learner"])
         policy = Policy.objects.get(pk=req["policy"])
 
-        if has_contexts is None:
+        if "contexts" in req:
             contextual_vars = req["contexts"]
         else:
             mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
