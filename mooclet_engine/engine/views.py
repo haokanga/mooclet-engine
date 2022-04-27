@@ -191,30 +191,30 @@ class PolicyParametersHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     filter_fields = ('mooclet', 'policy')
 
 
-class getBinaryContextualImputer(APIView):
-    def get(self, request):
-        req = json.loads(request.body)
+# class getBinaryContextualImputer(APIView):
+#     def get(self, request):
+#         req = json.loads(request.body)
 
-        if req['name'] is None or req['mooclet'] is None:
-            return Response({'error':'invalid'}, status=500)
+#         if req['name'] is None or req['mooclet'] is None:
+#             return Response({'error':'invalid'}, status=500)
 
-        imputer = {}
-        values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet'])
-        num_values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet']).count()
+#         imputer = {}
+#         values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet'])
+#         num_values = Value.objects.filter(variable__name=req['name'], mooclet=req['mooclet']).count()
 
-        if num_values == 0:
-            imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
-        else:
-            sum_values = values.aggregate(Sum('value'))
-            sum_values = sum_values['value__sum']
-            binary_t_prop = sum_values/num_values
-            imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
+#         if num_values == 0:
+#             imputer['imputer'] = np.random.choice([0, 1], 1, p=[0.5, 0.5])
+#         else:
+#             sum_values = values.aggregate(Sum('value'))
+#             sum_values = sum_values['value__sum']
+#             binary_t_prop = sum_values/num_values
+#             imputer['imputer'] = np.random.choice([0, 1], 1, p=[1-binary_t_prop, binary_t_prop])
 
-        return Response(imputer)
+#         return Response(imputer)
 
 
-class getContextualImputer(APIView):
-    def get(self, request):
+class ContextualImputer(APIView):
+    def post(self, request):
         req = json.loads(request.body)
         has_learner = request.args.get("learner")
         has_mooclet = request.args.get("mooclet")
