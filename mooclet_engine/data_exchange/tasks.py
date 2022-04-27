@@ -231,8 +231,8 @@ def update_model(self, **kwargs):
 	variance_b = parameters['variance_b']
 	latest_update = params.latest_update
 	values = values_to_df(mooclet, params, latest_update)
-	print("UPDATE_MODEL: values - ")
-	print(values)
+	# print("UPDATE_MODEL: values - ")
+	# print(values)
 	# fix batch_size here: Might have to change to fix batch size for future use
 	if "batch_size" in parameters:
 		batch_size = parameters["batch_size"]
@@ -244,8 +244,8 @@ def update_model(self, **kwargs):
 	# print("update_model: values.empty: {}".format(values.empty))
 
 	if not values.empty and len(values) >= batch_size:
-		print("has new values!")
-		print(len(values))
+		# print("has new values!")
+		# print(len(values))
 		new_history = PolicyParametersHistory.create_from_params(params)
 		new_history.parameters["update_size"] = len(values)
 		new_history.parameters["update_record"] = values.to_dict('records')
@@ -258,7 +258,7 @@ def update_model(self, **kwargs):
 		numpy_design_matrix = design_matrix.values
 		numpy_rewards = rewards.values
 		posterior_vals = posteriors(numpy_rewards, numpy_design_matrix, mean, cov, variance_a, variance_b)
-		print("posteriors: " + str(posterior_vals))
+		# print("posteriors: " + str(posterior_vals))
 		params.parameters['coef_mean'] = posterior_vals["coef_mean"].tolist()
 		params.parameters['coef_cov'] = posterior_vals["coef_cov"].tolist()
 		params.parameters['variance_a'] = posterior_vals["variance_a"]

@@ -25,7 +25,7 @@ class PolicySerializer(serializers.ModelSerializer):
 class VariableSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     class Meta:
         model = Variable
-        fields = ('id', 'environment','variable_id','name',)
+        fields = ('id', 'environment','variable_id','name','min_value','max_value','value_type','sample_thres')
 
 class ValueSerializer(WritableNestedModelSerializer):
     # variable_name = serializers.RelatedField(source='Variable')
