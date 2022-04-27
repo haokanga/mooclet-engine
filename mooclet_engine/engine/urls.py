@@ -22,4 +22,5 @@ urlpatterns = [
 	url(r'^data', views.PandasValueViewSet.as_view()),
 	url(r'^learner-data', views.PandasLearnerValueViewSet.as_view()),
 	url(r'^api/getBinaryContextualImputer/', views.getBinaryContextualImputer.as_view())
+	url(r'^api/getContextualImputer/', views.getContextualImputer.as_view())
 ]
