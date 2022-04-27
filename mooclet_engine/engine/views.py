@@ -237,6 +237,7 @@ class ContextualImputer(APIView):
                 return Response({"error": f"contextual variable {context_var} is invalid"}, status=500)
             variable = Variable.objects.filter(name=context_var).last()
             val_type = variable.value_type
+            print(f"variable type: {val_type}")
             val_min = variable.min_value
             val_max = variable.max_value
             sample_thres = variable.sample_thres
