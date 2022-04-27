@@ -251,6 +251,7 @@ class ContextualImputer(APIView):
                 sample = (sample - val_min) / (val_max - val_min)
             else:
                 val_lst = list(values.values_list("value"))
+                print(f"val_lst: {val_lst}")
                 sample = np.random.choice(val_lst)
             
             Value.objects.create(
