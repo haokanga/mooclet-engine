@@ -220,11 +220,26 @@ class ContextualImputer(APIView):
         if not all(key in req for key in ("learner", "mooclet", "policy")):
             return Response({"error": "invalid request"}, status=500)
 
-        mooclet = Mooclet.objects.get(pk=req["mooclet"])
-        learner = Learner.objects.get(name=req["learner"])
-        policy = Policy.objects.get(pk=req["policy"])
+        try:
+            mooclet = Mooclet.objects.get(pk=req["mooclet"])
+        except:
+            return Response({"error": "mooclet not found"}, status=404)
 
-        mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
+        try:
+            learner = Learner.objects.get(name=req["learner"])
+        except:
+            return Response({"error": "learner not found"}, status=404)
+
+        try:
+            policy = Policy.objects.get(pk=req["policy"])
+        except:
+            return Response({"error": "policy not found"}, status=404)
+
+        try:
+            mooclet_params = PolicyParameters.objects.get(mooclet=mooclet, policy=policy)
+        except:
+            return Response({"error": "policy parameters not found in mooclet"}, status=404)
+
         parameters = mooclet_params.parameters
         if "contexts" in req:
             contextual_vars = req["contexts"]
@@ -232,6 +247,7 @@ class ContextualImputer(APIView):
             contextual_vars = list(filter(lambda context: context != "version", parameters["contextual_variables"]))
 
         imputer = {}
+        context_samples = []
         for context_var in contextual_vars:
             if context_var not in parameters["contextual_variables"]:
                 return Response({"error": f"contextual variable {context_var} is invalid"}, status=500)
@@ -252,15 +268,18 @@ class ContextualImputer(APIView):
             else:
                 val_lst = list(float(val_tup[0]) for val_tup in values.values_list("value"))
                 sample = np.random.choice(val_lst)
-            
+
+            context_samples.append((variable, sample))
+            imputer[context_var] = sample
+
+        for context in context_samples:
+            variable, sample = context
             Value.objects.create(
-                variable=variable, 
-                value=sample, 
+                variable=variable,
+                value=sample,
                 text="Init Context",
                 learner=learner,
                 mooclet=mooclet
             )
-
-            imputer[context_var] = sample
 
         return Response({"imputers": imputer})
