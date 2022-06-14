@@ -389,8 +389,8 @@ class ExportExcelValues(APIView):
         print("select_parameters: {}".format(select_parameters.query))
         
         # Get a set of all variables and reward variables related to the mooclet instance.
-        all_variables = {}
-        reward_variables = {}
+        all_variables = set()
+        reward_variables = set()
         for param in select_parameters:
             parameters = dict(param.parameters)
             print("parameter: {}".format(parameters))
