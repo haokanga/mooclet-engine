@@ -371,7 +371,7 @@ class ExportExcelValues(APIView):
             # If no policy specified, Update policies QuerySet so that only contains policies 
             # related to the mooclet instance.
             try:
-                policies = Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).only('policy').distinct()
+                policies = policies.filter(pk__in=Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).only('policy').distinct())
             except:
                 return Response({"error": "Unknown field: 'policy'"}, status=400)
         else:
@@ -386,26 +386,30 @@ class ExportExcelValues(APIView):
             return Response({"error": "Policy parameter not found"}, status=404)
         
         print("policies after: {}".format(policies.query))
-        print("policies: {}".format(select_parameters.query))
+        print("select_parameters: {}".format(select_parameters.query))
         
         # Get a set of all variables and reward variables related to the mooclet instance.
         all_variables = {}
         reward_variables = {}
         try:
             for param in select_parameters:
-                field = param._meta.get_field(parameters)
                 parameters = dict(param.parameters)
+                print("parameter: {}".format(parameters))
 
                 # Add all contextual variables.
                 for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
                     if contextual_param_alias in parameters:
                         all_variables.union(set(parameters[contextual_param_alias]))
                 
+                print("contextual all variables: {}".format(all_variables))
+                
                 # Add all reward variables.
                 for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
                     if reward_param_alias in parameters:
                         all_variables.union(set([parameters[reward_param_alias]]))
                         reward_variables.union(set([parameters[reward_param_alias]]))
+                print("reward all variables: {}".format(all_variables))
+                print("reward_variables: {}".format(reward_variables))
         except:
             return Response({"error": "Unknown field: 'parameters'"}, status=400)
 
