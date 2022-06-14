@@ -1,5 +1,5 @@
 import pandas as pd
-import .models as *
+
 
 # Helper function for setting non-empty (key, value) pair in the given dictonary.
 # Return True is there is a non-empty (key, value) pair.
