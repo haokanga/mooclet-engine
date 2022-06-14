@@ -389,24 +389,27 @@ class ExportExcelValues(APIView):
         print("select_parameters: {}".format(select_parameters.query))
         
         # Get a set of all variables and reward variables related to the mooclet instance.
-        all_variables = set()
-        reward_variables = set()
+        all_variables = []
+        reward_variables = []
         for param in select_parameters:
             parameters = dict(param.parameters)
             print("parameter: {}".format(parameters))
 
             # Add all contextual variables.
             for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
-                if contextual_param_alias in parameters:
-                    all_variables.union(set(parameters[contextual_param_alias]))
+                if contextual_param_alias in parameters and parameters[contextual_param_alias] not in all_variables:
+                    all_variables.append(parameters[contextual_param_alias])
             
             print("contextual all variables: {}".format(all_variables))
             
             # Add all reward variables.
             for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
                 if reward_param_alias in parameters:
-                    all_variables.union(set([parameters[reward_param_alias]]))
-                    reward_variables.union(set([parameters[reward_param_alias]]))
+                    if parameters[reward_param_alias] not in all_variables:
+                        all_variables.append([parameters[reward_param_alias]])
+                    
+                    if parameters[reward_param_alias] not in reward_variables:
+                        reward_variables.append([parameters[reward_param_alias]])
             print("reward all variables: {}".format(all_variables))
             print("reward_variables: {}".format(reward_variables))
 
@@ -415,6 +418,9 @@ class ExportExcelValues(APIView):
         if len(variable_arg_dict) == 0:
             variables = variables.filter(name__in=list(all_variables))
         reward_variables = variables.filter(name__in=list(reward_variables))
+
+        print("variables: {}".format(variables.query))
+        print("reward_variables: {}".format(reward_variables.query))
 
         # 2) select_param_histories - Policy parameters history
         # This QuerySet is sorted by creation_time (oldest to newest).
