@@ -103,13 +103,11 @@ class VariableViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
 
 class ValueViewSet(viewsets.ModelViewSet):
-    queryset = self.get_queryset()
+    queryset = Value.objects.all()
     serializer_class = ValueSerializer
     filter_fields = ('learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name', 'policy',)
     search_fields = ('learner__name', 'variable__name',)
-
-    def get_queryset(self):
-        return Value.objects.order_by('-timestamp')
+    ordering_fields = ('timestamp','learner', 'variable', 'learner__name', 'variable__name', 'mooclet', 'mooclet__name', 'version', 'version__name',)
 
     @action(detail=False, methods=['POST'])
     def create_many(self, request, pk=None):
