@@ -100,7 +100,7 @@ def map_version_to_reward(
             "learner__name": "learner",
             "policy__name": "policy",
             "version__name": "arm",
-            "version__version_json": "action_space"
+            "version__version_json": "action_space",
             "variable__name": "name"
         }
     )
