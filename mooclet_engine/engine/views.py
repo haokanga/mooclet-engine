@@ -397,19 +397,22 @@ class ExportExcelValues(APIView):
 
             # Add all contextual variables.
             for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
-                if contextual_param_alias in parameters and parameters[contextual_param_alias] not in all_variables:
-                    all_variables.append(parameters[contextual_param_alias])
+                if contextual_param_alias in parameters:
+                    all_variables += list(set(parameters[contextual_param_alias]) - set(all_variables))
+                    # all_variables.append(parameters[contextual_param_alias])
             
             print("contextual all variables: {}".format(all_variables))
             
             # Add all reward variables.
             for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
                 if reward_param_alias in parameters:
-                    if parameters[reward_param_alias] not in all_variables:
-                        all_variables.append([parameters[reward_param_alias]])
-                    
-                    if parameters[reward_param_alias] not in reward_variables:
-                        reward_variables.append([parameters[reward_param_alias]])
+                    all_variables += list(set(parameters[reward_param_alias]) - set(all_variables))
+                    # if parameters[reward_param_alias] not in all_variables:
+                    #     all_variables.append(parameters[reward_param_alias])
+
+                    reward_variables += list(set(parameters[reward_param_alias]) - set(reward_variables))
+                    # if parameters[reward_param_alias] not in reward_variables:
+                    #     reward_variables.append(parameters[reward_param_alias])
             print("reward all variables: {}".format(all_variables))
             print("reward_variables: {}".format(reward_variables))
 
