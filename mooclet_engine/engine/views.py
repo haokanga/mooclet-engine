@@ -371,7 +371,8 @@ class ExportExcelValues(APIView):
             # If no policy specified, Update policies QuerySet so that only contains policies 
             # related to the mooclet instance.
             try:
-                policies = policies.filter(pk__in=Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).only('policy').distinct())
+                print("list all policies: {}".format(list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct()))
+                policies = policies.filter(pk__in=list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct()))
             except:
                 return Response({"error": "Unknown field: 'policy'"}, status=400)
         else:
