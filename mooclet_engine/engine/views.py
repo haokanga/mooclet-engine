@@ -406,11 +406,11 @@ class ExportExcelValues(APIView):
             # Add all reward variables.
             for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
                 if reward_param_alias in parameters:
-                    all_variables += list(set(parameters[reward_param_alias]) - set(all_variables))
+                    all_variables += list(set([parameters[reward_param_alias]]) - set(all_variables))
                     # if parameters[reward_param_alias] not in all_variables:
                     #     all_variables.append(parameters[reward_param_alias])
 
-                    reward_variables += list(set(parameters[reward_param_alias]) - set(reward_variables))
+                    reward_variables += list(set([parameters[reward_param_alias]]) - set(reward_variables))
                     # if parameters[reward_param_alias] not in reward_variables:
                     #     reward_variables.append(parameters[reward_param_alias])
             print("reward all variables: {}".format(all_variables))
