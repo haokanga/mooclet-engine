@@ -268,7 +268,7 @@ class ContextualImputer(APIView):
         return Response({"imputers": imputer})
 
 
-class ExportCSVValues(APIView):
+class ExportExcelValues(APIView):
     VARIABLE_NAMES = {
         "contextual": {
             "aliases": [
