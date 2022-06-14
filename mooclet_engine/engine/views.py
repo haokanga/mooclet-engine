@@ -283,10 +283,12 @@ class ExportExcelValues(APIView):
 
     # Url: /datadownload/?mooclet=XX/
     def get(self, request):
+        query_params = dict(request.query_params)
+
         # Find a Model instance of Mooclet by mooclet id or name.
         mooclet_arg_dict = {}
-        set_if_not_none(mooclet_arg_dict, "pk", request.query_params["mooclet"])
-        set_if_not_none(mooclet_arg_dict, "name", request.query_params["mooclet__name"])
+        set_if_not_none(mooclet_arg_dict, "pk", query_params.get("mooclet", default=None))
+        set_if_not_none(mooclet_arg_dict, "name", query_params.get("mooclet__name", default=None))
         if len(mooclet_arg_dict) == 0:
             return Response({"error": "invalid request"}, status=500)
 
@@ -299,8 +301,8 @@ class ExportExcelValues(APIView):
         # This instance is optional. If no arguments are given, then look for 
         # all version instance for the given mooclet.
         version_arg_dict = {"mooclet": mooclet}
-        set_if_not_none(version_arg_dict, "pk", request.query_params["version"])
-        set_if_not_none(version_arg_dict, "name", request.query_params["version__name"])
+        set_if_not_none(version_arg_dict, "pk", query_params.get("version", default=None))
+        set_if_not_none(version_arg_dict, "name", query_params.get("version__name", default=None))
         
         try:
             versions = Version.objects.filter(**version_arg_dict)
@@ -311,8 +313,8 @@ class ExportExcelValues(APIView):
         # This instance is optional. If no arguments are given, then look for 
         # all learner instances for the given mooclet.
         learner_arg_dict = {}
-        set_if_not_none(learner_arg_dict, "pk", request.query_params["learner"])
-        set_if_not_none(learner_arg_dict, "name", request.query_params["learner__name"])
+        set_if_not_none(learner_arg_dict, "pk", query_params.get("learner", default=None))
+        set_if_not_none(learner_arg_dict, "name", query_params.get("learner__name", default=None))
         
         try:
             learners = Learner.objects.filter(**learner_arg_dict)
@@ -329,8 +331,8 @@ class ExportExcelValues(APIView):
         #   One prototype: If user ONLY ask for one variable, then we give them a csv file of such variable. 
         #       Which means we don't need to map versions to such variable.
         variable_arg_dict = {}
-        set_if_not_none(variable_arg_dict, "pk", request.query_params["variable"])
-        set_if_not_none(variable_arg_dict, "name", request.query_params["variable__name"])
+        set_if_not_none(variable_arg_dict, "pk", query_params.get("variable", default=None))
+        set_if_not_none(variable_arg_dict, "name", query_params.get("variable__name", default=None))
         
         try:
             variables = Variable.objects.filter(**variable_arg_dict)
@@ -341,7 +343,7 @@ class ExportExcelValues(APIView):
         # This instance is optional. If no arguments are given, then look for 
         # all policy instances for the given mooclet.
         policy_arg_dict = {}
-        set_if_not_none(policy_arg_dict, "pk", request.query_params["policy"])
+        set_if_not_none(policy_arg_dict, "pk", query_params.get("policy", default=None))
         
         try:
             policies = Policy.objects.filter(**policy_arg_dict)
