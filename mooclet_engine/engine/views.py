@@ -292,6 +292,8 @@ class ExportExcelValues(APIView):
         if len(mooclet_arg_dict) == 0:
             return Response({"error": "invalid request"}, status=500)
 
+        print("query_params: {}".format(query_params))
+        print("mooclet_arg_dict: {}".format(mooclet_arg_dict))
         try:
             mooclet = Mooclet.objects.get(**mooclet_arg_dict)
         except:
