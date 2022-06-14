@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_pandas import PandasView
 from .models import *
 from .serializers import *
-from .utils.data_downloader_utils import set_if_not_none, map_version_to_reward
+from .utils.data_downloader_utils import set_if_not_none, set_if_not_none_non_json, map_version_to_reward
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -430,6 +430,8 @@ class ExportExcelValues(APIView):
         # This QuerySet can specified by policy.
         select_param_histories = PolicyParametersHistory.objects.order_by("creation_time").filter(Q(mooclet=mooclet) & Q(policy__in=policies))
 
+        print("select_param_histories: {}".format(select_param_histories.query))
+
         # 3) select_param_histories - Value
         # This QuerySet is sorted by timestamp (oldest to newest).
         # This QuerySet can specified by version, learner, variable, or policy.
@@ -437,14 +439,16 @@ class ExportExcelValues(APIView):
         # mooclet, learner, and variables cannot be NULL.
         # Exclude all values which has NULL in mooclet fields.
         select_values_kargs = {}
-        set_if_not_none(select_values_kargs, "mooclet", mooclet)
+        set_if_not_none_non_json(select_values_kargs, "mooclet", mooclet)
         if len(learner_arg_dict) != 0:
-            set_if_not_none(select_values_kargs, "learner", learners.first())
+            set_if_not_none_non_json(select_values_kargs, "learner", learners.first())
         if len(variable_arg_dict) != 0:
-            set_if_not_none(select_values_kargs, "variable", variables.first())
+            set_if_not_none_non_json(select_values_kargs, "variable", variables.first())
         
         # Find a QuerySet object of Value by mooclet, learner, and variable.
         select_values = Value.objects.order_by("timestamp").filter(**select_values_kargs)
+
+        print("select_values: {}".format(select_values.query))
 
         # version and policy can be NULL. 
         # Need to filter QuerySet value by version and policy but allow these two fields to be NULL.
@@ -455,6 +459,8 @@ class ExportExcelValues(APIView):
         
         # Exclude all values which has NULL in learner and variable fields.
         select_values = select_values.exclude(Q(learner__isnull=True) | Q(variable__isnull=True))
+
+        print("select_values: {}".format(select_values.query))
 
         # Check if there are any existing values.
         if not select_values.exists():
