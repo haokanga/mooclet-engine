@@ -13,6 +13,13 @@ def set_if_not_none(mapping, key, value):
     return False
 
 
+def set_if_not_none_non_json(mapping, key, value):
+    if value is not None:
+        mapping[key] = value[0]
+        return True
+    return False
+
+
 # Relationship between version values and reward values are one-to-many.
 # E.g. For each participant, one assigned version can map to many reward values. 
 # But only the first (i.e. oldest) reward are considered valid to the assigned version.
