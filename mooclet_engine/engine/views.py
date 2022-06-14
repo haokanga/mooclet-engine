@@ -368,14 +368,14 @@ class ExportExcelValues(APIView):
             # # Check if contextual policy is used in the mooclet instance.
             # contextual_parameters = select_parameters.filter(policy__in=Policy.objects.filter(name__contains="contextual"))
             
-            # If no policy specified, Update policies QuerySet so that only contains policies 
-            # related to the mooclet instance.
-            try:
-                policy_list = list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct())
-                print("list all policies: {}".format(policy_list))
-                policies = policies.filter(pk__in=policy_list)
-            except:
-                return Response({"error": "Unknown field: 'policy'"}, status=400)
+            # # If no policy specified, Update policies QuerySet so that only contains policies 
+            # # related to the mooclet instance.
+            # try:
+            #     policy_list = list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct())
+            #     print("list all policies: {}".format(policy_list))
+            #     policies = policies.filter(pk__in=policy_list)
+            # except:
+            #     return Response({"error": "Unknown field: 'policy'"}, status=400)
         else:
             # Find a QuerySet of PolicyParameters instances by mooclet and policy.
             select_parameters_kargs = {
