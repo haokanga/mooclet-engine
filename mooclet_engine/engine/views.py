@@ -391,27 +391,24 @@ class ExportExcelValues(APIView):
         # Get a set of all variables and reward variables related to the mooclet instance.
         all_variables = {}
         reward_variables = {}
-        try:
-            for param in select_parameters:
-                parameters = dict(param.parameters)
-                print("parameter: {}".format(parameters))
+        for param in select_parameters:
+            parameters = dict(param.parameters)
+            print("parameter: {}".format(parameters))
 
-                # Add all contextual variables.
-                for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
-                    if contextual_param_alias in parameters:
-                        all_variables.union(set(parameters[contextual_param_alias]))
-                
-                print("contextual all variables: {}".format(all_variables))
-                
-                # Add all reward variables.
-                for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
-                    if reward_param_alias in parameters:
-                        all_variables.union(set([parameters[reward_param_alias]]))
-                        reward_variables.union(set([parameters[reward_param_alias]]))
-                print("reward all variables: {}".format(all_variables))
-                print("reward_variables: {}".format(reward_variables))
-        except:
-            return Response({"error": "Unknown field: 'parameters'"}, status=400)
+            # Add all contextual variables.
+            for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
+                if contextual_param_alias in parameters:
+                    all_variables.union(set(parameters[contextual_param_alias]))
+            
+            print("contextual all variables: {}".format(all_variables))
+            
+            # Add all reward variables.
+            for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
+                if reward_param_alias in parameters:
+                    all_variables.union(set([parameters[reward_param_alias]]))
+                    reward_variables.union(set([parameters[reward_param_alias]]))
+            print("reward all variables: {}".format(all_variables))
+            print("reward_variables: {}".format(reward_variables))
 
         # If no variable specified, update variables QuerySet so that only contains variables 
         # related to the mooclet instance.
