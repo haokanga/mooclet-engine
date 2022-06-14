@@ -469,7 +469,7 @@ class ExportExcelValues(APIView):
         # TODO: Requesting data for a specific variable (reward or context, or something else).
 
         with BytesIO() as b:
-            with pd.ExcelWriter(b, engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(b) as writer:
                 # Generate each data csv file for each policy
                 for policy_idx, policy in enumerate(policies):
                     datapoint_frames = []
