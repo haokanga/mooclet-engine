@@ -5,7 +5,10 @@ import pandas as pd
 # Return True is there is a non-empty (key, value) pair.
 def set_if_not_none(mapping, key, value):
     if value is not None:
-        mapping[key] = value[0]
+        if key == "pk":
+            mapping[key] = int(value[0])
+        else:
+            mapping[key] = value[0]
         return True
     return False
 

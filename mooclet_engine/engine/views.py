@@ -396,7 +396,7 @@ class ExportExcelValues(APIView):
                     if reward_param_alias in parameters:
                         all_variables.union(set([parameters[reward_param_alias]]))
                         reward_variables.union(set([parameters[reward_param_alias]]))
-        except FieldDoesNotExist:
+        except:
             return Response({"error": "Unknown field: 'parameters'"}, status=400)
 
         # If no variable specified, update variables QuerySet so that only contains variables 
