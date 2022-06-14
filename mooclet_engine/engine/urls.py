@@ -23,4 +23,5 @@ urlpatterns = [
 	url(r'^learner-data', views.PandasLearnerValueViewSet.as_view()),
 	# url(r'^api/getBinaryContextualImputer/', views.getBinaryContextualImputer.as_view()),
 	url(r'^api/initContext/', views.ContextualImputer.as_view())
+	url(r'^api/dataDownload/', views.ExportExcelValues.as_view())
 ]
