@@ -15,7 +15,7 @@ def set_if_not_none(mapping, key, value):
 
 def set_if_not_none_non_json(mapping, key, value):
     if value is not None:
-        mapping[key] = value[0]
+        mapping[key] = value
         return True
     return False
 
