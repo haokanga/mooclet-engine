@@ -469,7 +469,7 @@ class ExportExcelValues(APIView):
         # TODO: Requesting data for a specific variable (reward or context, or something else).
 
         with BytesIO() as b:
-            with pd.ExcelWriter(b) as writer:
+            with pd.ExcelWriter(b, engine="xlsxwriter") as writer:
                 # Generate each data csv file for each policy
                 for policy_idx, policy in enumerate(policies):
                     datapoint_frames = []
@@ -522,6 +522,9 @@ class ExportExcelValues(APIView):
                         prev_checkpoint = curr_checkpoint
                     
                     policy_datapoints = pd.concat(datapoint_frames)
+
+                    print("{} {} policy_datapoints:".format(policy_idx, policy.name))
+                    print(policy_datapoints)
 
                     # ONLY export excel file if dataframe is not empty.
                     if len(policy_datapoints):
