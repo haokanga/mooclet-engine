@@ -299,6 +299,8 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Mooclet not found"}, status=404)
         
+        print("mooclet: {}".format(mooclet.pk))
+        
         # Find a QuerySet instance of Version by version id or name. 
         # This instance is optional. If no arguments are given, then look for 
         # all version instance for the given mooclet.
@@ -311,6 +313,8 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Version not found"}, status=404)
         
+        print("versions: {}".format(versions.query))
+
         # Find a QuerySet instance of Learner by learner id or name. 
         # This instance is optional. If no arguments are given, then look for 
         # all learner instances for the given mooclet.
@@ -352,6 +356,9 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Policy not found"}, status=404)
 
+        print("policies before: {}".format(policies.query))
+
+
         # The Model Queries
         # 1) select_parameters - Policy parameters
         if len(policy_arg_dict) == 0:
@@ -377,6 +384,9 @@ class ExportExcelValues(APIView):
         
         if not select_parameters.exists():
             return Response({"error": "Policy parameter not found"}, status=404)
+        
+        print("policies after: {}".format(policies.query))
+        print("policies: {}".format(select_parameters.query))
         
         # Get a set of all variables and reward variables related to the mooclet instance.
         all_variables = {}
