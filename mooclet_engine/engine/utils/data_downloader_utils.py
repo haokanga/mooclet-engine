@@ -88,6 +88,8 @@ def map_version_to_reward(
     columns += parameter_names
     columns += ["update_group"]
 
+    print("columns: {}".format(columns))
+
     # Initialize DataFrame with columns
     data = pd.DataFrame(columns=columns)
 
@@ -114,6 +116,9 @@ def map_version_to_reward(
             "variable__name": "name"
         }
     )
+
+    print("value_df: ")
+    print(value_df)
 
     version_df = value_df[value_df.name == "version"]
     reward_df = value_df[value_df.name.isin(reward_names)]
