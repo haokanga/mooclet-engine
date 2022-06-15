@@ -7,8 +7,8 @@ def set_if_not_none(mapping, key, value):
     if value is not None:
         if key == "pk":
             mapping[key] = int(value[0])
-        else:
-            mapping[key] = value[0]
+        elif key == "name":
+            mapping[key] = str(value[0])
         return True
     return False
 
