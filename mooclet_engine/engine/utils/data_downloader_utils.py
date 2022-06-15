@@ -162,6 +162,8 @@ def map_version_to_reward(
             "policy": version_row["policy"],
             "arm": version_row["arm"]
         }
+        for action_name in version_action_space_names:
+            datapoint_dict[action_name] = version_row[action_name]
         datapoint_dict.update(parameter_dict)
 
         # action_space = dict(version_row["action_space"])
@@ -212,8 +214,8 @@ def map_version_to_reward(
                 # Get all checking conditions
                 check_update = record_df["user_id"] == version_row["learner_id"]
                 check_update &= record_df[reward_row["name"]] == reward_row["value"]
-                # for action_name, action_value in action_space.items():
-                #     check_update &= record_df[action_name] == action_value
+                for action_name in version_action_space_names:
+                    check_update &= record_df[action_name] == version_row[action_name]
                 
                 if len(record_df[check_update].index) != 0:
                     # We have a updating datapoint

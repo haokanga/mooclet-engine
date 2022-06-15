@@ -478,6 +478,7 @@ class ExportExcelValues(APIView):
 
                     single_param_histories = select_param_histories.filter(policy=policy)
                     single_parameters = select_parameters.filter(policy=policy)
+                    batch_values = select_values.filter(Q(policy__isnull=True) | Q(policy__in=policies))
 
                     prev_checkpoint = None
                     update_count = 0
@@ -487,17 +488,17 @@ class ExportExcelValues(APIView):
                         # Slice Value QuerySet by the creation_time of current checkpoint 
                         # and previous checkpoint (if exists).
                         if prev_checkpoint:
-                            batch_values = select_values.filter(
+                            batch_values = batch_values.filter(
                                 Q(timestamp__gte=prev_checkpoint) & Q(timestamp__lt=curr_checkpoint)
                             )
                         else:
-                            batch_values = select_values.filter(Q(timestamp__lt=curr_checkpoint))
+                            batch_values = batch_values.filter(Q(timestamp__lt=curr_checkpoint))
 
                         # QuerySet batch_values is empty means no new values for updating parameters.
                         if not batch_values.exists():
                             break
 
-                        data = map_version_to_reward(
+                        data, columns = map_version_to_reward(
                             batch_values, 
                             mooclet, 
                             policy, 
@@ -514,12 +515,10 @@ class ExportExcelValues(APIView):
                     
                     # Slice the last part of the batch values
                     if prev_checkpoint:
-                        batch_values = select_values.filter(Q(timestamp__gte=prev_checkpoint))
-                    else:
-                        batch_values = select_values
+                        batch_values = batch_values.filter(Q(timestamp__gte=prev_checkpoint))
 
                     if batch_values.exists():
-                        data = map_version_to_reward(
+                        data, columns = map_version_to_reward(
                             batch_values, 
                             mooclet, 
                             policy, 
@@ -532,16 +531,17 @@ class ExportExcelValues(APIView):
                         datapoint_frames.append(data)
                     
                     # ONLY export excel file if dataframe is not empty.
-                    if len(datapoint_frames):
+                    if len(datapoint_frames) != 0:
                         policy_datapoints = pd.concat(datapoint_frames)
 
                         print("{} {} policy_datapoints:".format(policy_idx, policy.name))
                         print(policy_datapoints)
-                        if len(policy_datapoints.index):
+                        if len(policy_datapoints.index) != 0:
                             policy_name_lst = policy.name.replace(" ", "_").split("_")
                             policy_datapoints.to_excel(
                                 writer, 
-                                sheet_name="{}_{}".format("".join([c[0].upper() for c in policy_name_lst]), policy_idx)
+                                sheet_name="{}_{}".format("".join([c[0].upper() for c in policy_name_lst]), policy_idx),
+                                columns=columns
                             )
 
             filename = "{}.xlsx".format(mooclet.name.replace(" ", "_"))
