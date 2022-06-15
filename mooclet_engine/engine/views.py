@@ -537,8 +537,12 @@ class ExportExcelValues(APIView):
 
                         print("{} {} policy_datapoints:".format(policy_idx, policy.name))
                         print(policy_datapoints)
-
-                        policy_datapoints.to_excel(writer, sheet_name="{}_{}".format(policy.name, policy_idx))
+                        if len(policy_datapoints.index):
+                            policy_name_lst = policy.name.replace(" ", "_").split("_")
+                            policy_datapoints.to_excel(
+                                writer, 
+                                sheet_name="{}_{}".format("".join([c[0].upper() for c in policy_name_lst]), policy_idx)
+                            )
 
             filename = "{}.xlsx".format(mooclet.name.replace(" ", "_"))
             # imported from django.http

@@ -1,6 +1,5 @@
 import pandas as pd
 
-pd.options.display.max_columns = None  
 
 # Helper function for setting non-empty (key, value) pair in the given dictonary.
 # Return True is there is a non-empty (key, value) pair.
