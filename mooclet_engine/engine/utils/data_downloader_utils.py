@@ -51,6 +51,7 @@ def map_version_to_reward(
     returns:
         data: pandas.DataFrame object. Contains all data points for each reward 
             entry in datetime order (from oldest to newest).
+        columns: column names in the pandas.DataFrame object.
     '''
     def without_keys(d, keys):
         return {x: d[x] for x in d if x not in keys}
@@ -233,7 +234,7 @@ def map_version_to_reward(
     data["arm_assign_time"] = data["arm_assign_time"].astype(str)
     data = data.assign(Index=range(len(data))).set_index('Index')
 
-    return data
+    return data, columns
 
 
 def request_data_by_variable(
