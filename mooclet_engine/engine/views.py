@@ -477,7 +477,7 @@ class ExportExcelValues(APIView):
                     datapoint_frames = []
 
                     single_param_histories = select_param_histories.filter(policy=policy)
-                    single_parameters = select_parameters.filter(policy=policy)
+                    single_parameters = select_parameters.filter(policy=policy).first()
                     batch_values = select_values.filter(Q(policy__isnull=True) | Q(policy=policy))
 
                     prev_checkpoint = None
