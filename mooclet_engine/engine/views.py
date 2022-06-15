@@ -345,6 +345,15 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Variable not found"}, status=404)
         
+        reward_arg_dict = {}
+        set_if_not_none(variable_arg_dict, "pk", query_params.get("reward", None))
+        set_if_not_none(variable_arg_dict, "name", query_params.get("reward__name", None))
+        
+        try:
+            reward_variables = Variable.objects.filter(**variable_arg_dict)
+        except:
+            return Response({"error": "Variable reward not found"}, status=404)
+        
         # Find a QuerySet instance of Policy by policy id. 
         # This instance is optional. If no arguments are given, then look for 
         # all policy instances for the given mooclet.
@@ -357,7 +366,6 @@ class ExportExcelValues(APIView):
             return Response({"error": "Policy not found"}, status=404)
 
         print("policies before: {}".format(policies.query))
-
 
         # The Model Queries
         # 1) select_parameters - Policy parameters
@@ -384,45 +392,43 @@ class ExportExcelValues(APIView):
             }
             select_parameters = PolicyParameters.objects.filter(**select_parameters_kargs)
         
-        if not select_parameters.exists():
-            return Response({"error": "Policy parameter not found"}, status=404)
-        
-        print("policies after: {}".format(policies.query))
-        print("select_parameters: {}".format(select_parameters.query))
-        
-        # Get a set of all variables and reward variables related to the mooclet instance.
-        all_variables = []
-        reward_variables = []
-        for param in select_parameters:
-            parameters = dict(param.parameters)
-            print("parameter: {}".format(parameters))
-
-            # Add all contextual variables.
-            for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
-                if contextual_param_alias in parameters:
-                    all_variables += list(set(parameters[contextual_param_alias]) - set(all_variables))
-                    # all_variables.append(parameters[contextual_param_alias])
+        if select_parameters.exists():
+            print("policies after: {}".format(policies.query))
+            print("select_parameters: {}".format(select_parameters.query))
             
-            print("contextual all variables: {}".format(all_variables))
-            
-            # Add all reward variables.
-            for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
-                if reward_param_alias in parameters:
-                    all_variables += list(set([parameters[reward_param_alias]]) - set(all_variables))
-                    # if parameters[reward_param_alias] not in all_variables:
-                    #     all_variables.append(parameters[reward_param_alias])
+            # Get a set of all variables and reward variables related to the mooclet instance.
+            all_variables = []
+            all_reward_variables = []
+            for param in select_parameters:
+                parameters = dict(param.parameters)
+                print("parameter: {}".format(parameters))
 
-                    reward_variables += list(set([parameters[reward_param_alias]]) - set(reward_variables))
-                    # if parameters[reward_param_alias] not in reward_variables:
-                    #     reward_variables.append(parameters[reward_param_alias])
-            print("reward all variables: {}".format(all_variables))
-            print("reward_variables: {}".format(reward_variables))
+                # Add all contextual variables.
+                for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
+                    if contextual_param_alias in parameters:
+                        all_variables += list(set(parameters[contextual_param_alias]) - set(all_variables))
+                
+                print("contextual all variables: {}".format(all_variables))
+                
+                # Add all reward variables.
+                for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
+                    if reward_param_alias in parameters:
+                        all_variables += list(set([parameters[reward_param_alias]]) - set(all_variables))
+                        all_reward_variables += list(set([parameters[reward_param_alias]]) - set(all_reward_variables))
 
+                print("all_variables: {}".format(all_variables))
+                print("all_reward_variables: {}".format(all_reward_variables))
+        
         # If no variable specified, update variables QuerySet so that only contains variables 
         # related to the mooclet instance.
         if len(variable_arg_dict) == 0:
             variables = variables.filter(name__in=list(all_variables))
-        reward_variables = variables.filter(name__in=list(reward_variables))
+        
+        if len(reward_arg_dict) == 0:
+            reward_variables = variables.filter(name__in=list(all_reward_variables))
+        
+        if not reward_variables.exists():
+            return Response({"error": "invalid reward"}, status=400)
 
         print("variables: {}".format(variables.query))
         print("reward_variables: {}".format(reward_variables.query))
