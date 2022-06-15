@@ -419,13 +419,13 @@ class ExportExcelValues(APIView):
                 print("all_variables: {}".format(all_variables))
                 print("all_reward_variables: {}".format(all_reward_variables))
         
-        # If no variable specified, update variables QuerySet so that only contains variables 
-        # related to the mooclet instance.
-        if len(variable_arg_dict) == 0:
-            variables = variables.filter(name__in=list(all_variables))
-        
-        if len(reward_arg_dict) == 0:
-            reward_variables = variables.filter(name__in=list(all_reward_variables))
+            # If no variable specified, update variables QuerySet so that only contains variables 
+            # related to the mooclet instance.
+            if len(variable_arg_dict) == 0 and len(all_variables) != 0:
+                variables = variables.filter(name__in=all_variables)
+
+            if len(reward_arg_dict) == 0 and len(all_reward_variables) != 0:
+                reward_variables = variables.filter(name__in=all_reward_variables)
         
         if not reward_variables.exists():
             return Response({"error": "invalid reward"}, status=400)
