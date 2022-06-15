@@ -281,7 +281,7 @@ class ExportExcelValues(APIView):
         }
     }
 
-    # Url: /datadownload/?mooclet=XX/
+    # Url: /datadownload/?mooclet=XX&mooclet__name=&version=&version__name=&learner=&learner__name=/
     def get(self, request):
         query_params = dict(request.query_params)
 
@@ -353,6 +353,8 @@ class ExportExcelValues(APIView):
             reward_variables = Variable.objects.filter(**variable_arg_dict)
         except:
             return Response({"error": "Variable reward not found"}, status=404)
+        
+        print("GET REWARD: {}".format(reward_variables.query))
         
         # Find a QuerySet instance of Policy by policy id. 
         # This instance is optional. If no arguments are given, then look for 
