@@ -1,5 +1,6 @@
 import pandas as pd
 
+pd.options.display.max_columns = None  
 
 # Helper function for setting non-empty (key, value) pair in the given dictonary.
 # Return True is there is a non-empty (key, value) pair.
@@ -140,6 +141,15 @@ def map_version_to_reward(
     reward_df.reset_index(inplace=True)
     context_df.reset_index(inplace=True)
 
+    print("version_df: ")
+    print(version_df)
+
+    print("reward_df: ")
+    print(reward_df)
+
+    print("context_df: ")
+    print(context_df)
+
     record_df = pd.DataFrame(columns=["user_id"])
     if parameters and not policy_params and "update_record" in parameters:
         record_df = pd.concat([record_df, pd.DataFrame(parameters["update_record"])])
@@ -212,7 +222,9 @@ def map_version_to_reward(
                     update_datapoint_count += 1
             
             reward_datapoint.update(datapoint_dict)
-            data.append(reward_datapoint, ignore_index=True)
+
+            print("reward_datapoint: {}")
+            data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])])
     
     # Return sorted datapoints by reward created time (from oldest to newest).
     data = data.sort_values(by='reward_create_time', ascending=True)
