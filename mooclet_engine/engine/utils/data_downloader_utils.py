@@ -55,8 +55,8 @@ def map_version_to_reward(
 
     mooclet_name = mooclet.name
     policy_name = policy.name
-    variable_names = list(variables.value_list('name', flat=True))
-    reward_names = list(rewards.value_list('name', flat=True))
+    variable_names = list(variables.values_list('name', flat=True))
+    reward_names = list(rewards.values_list('name', flat=True))
 
     # Create columns specified for the datapoints.
     columns = ["study", "learner", "arm_assign_time", "policy", "arm", "reward_name"] 
