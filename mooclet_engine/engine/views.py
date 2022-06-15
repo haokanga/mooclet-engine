@@ -503,6 +503,7 @@ class ExportExcelValues(APIView):
                             policy, 
                             reward_variables,
                             variables,
+                            versions,
                             update_group=update_count,
                             policy_params_history=param_history
                         )                            
@@ -524,6 +525,7 @@ class ExportExcelValues(APIView):
                             policy, 
                             reward_variables,
                             variables,
+                            versions,
                             update_group=update_count,
                             policy_params=single_parameters
                         )
