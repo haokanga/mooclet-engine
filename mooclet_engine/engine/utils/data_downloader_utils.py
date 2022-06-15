@@ -178,7 +178,7 @@ def map_version_to_reward(
         next_version_row = version_df[same_mooclet_next & same_learner_next].iloc[version_index + 1:].head(1)
         
         if len(next_version_row.index) != 0:
-            end_time = reward_df["timestamp"] <= next_version_row["timestamp"]
+            end_time = reward_df["timestamp"] < next_version_row["timestamp"]
             time_range &= end_time
         
         same_mooclet = reward_df["study"] == datapoint_dict["study"]
