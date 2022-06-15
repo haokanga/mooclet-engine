@@ -480,7 +480,8 @@ class ExportExcelValues(APIView):
                     single_parameters = select_parameters.filter(policy=policy)
 
                     prev_checkpoint = None
-                    for update_count, param_history in enumerate(single_param_histories):
+                    update_count = 0
+                    for param_history in single_param_histories:
                         curr_checkpoint = param_history.creation_time
 
                         # Slice Value QuerySet by the creation_time of current checkpoint 
@@ -494,42 +495,47 @@ class ExportExcelValues(APIView):
 
                         # QuerySet batch_values is empty means no new values for updating parameters.
                         if not batch_values.exists():
-                            # Slice the last part of the batch values
-                            batch_values = select_values.filter(Q(timestamp__gte=curr_checkpoint))
+                            break
 
-                            if not batch_values.exists():
-                                break
-                            
-                            data = map_version_to_reward(
-                                batch_values, 
-                                mooclet, 
-                                policy, 
-                                reward_variables,
-                                variables,
-                                update_group=update_count,
-                                policy_params=single_parameters
-                            )
-                        else:
-                            data = map_version_to_reward(
-                                batch_values, 
-                                mooclet, 
-                                policy, 
-                                reward_variables,
-                                variables,
-                                update_group=update_count,
-                                policy_params_history=param_history
-                            )
-
+                        data = map_version_to_reward(
+                            batch_values, 
+                            mooclet, 
+                            policy, 
+                            reward_variables,
+                            variables,
+                            update_group=update_count,
+                            policy_params_history=param_history
+                        )                            
                         datapoint_frames.append(data)
+                        
                         prev_checkpoint = curr_checkpoint
+                        update_count += 1
                     
-                    policy_datapoints = pd.concat(datapoint_frames)
+                    # Slice the last part of the batch values
+                    if prev_checkpoint:
+                        batch_values = select_values.filter(Q(timestamp__gte=prev_checkpoint))
+                    else:
+                        batch_values = select_values
 
-                    print("{} {} policy_datapoints:".format(policy_idx, policy.name))
-                    print(policy_datapoints)
-
+                    if batch_values.exists():
+                        data = map_version_to_reward(
+                            batch_values, 
+                            mooclet, 
+                            policy, 
+                            reward_variables,
+                            variables,
+                            update_group=update_count,
+                            policy_params=single_parameters
+                        )
+                        datapoint_frames.append(data)
+                    
                     # ONLY export excel file if dataframe is not empty.
-                    if len(policy_datapoints):
+                    if len(datapoint_frames):
+                        policy_datapoints = pd.concat(datapoint_frames)
+
+                        print("{} {} policy_datapoints:".format(policy_idx, policy.name))
+                        print(policy_datapoints)
+
                         policy_datapoints.to_excel(writer, sheet_name="{}_{}".format(policy.name, policy_idx))
 
             filename = "{}.xlsx".format(mooclet.name.replace(" ", "_"))
