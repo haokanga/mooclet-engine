@@ -81,10 +81,8 @@ def map_version_to_reward(
     parameters = None
     try:
         if policy_params_history:
-            field = policy_params_history._meta.get_field(parameters)
             parameters = policy_params_history.parameters
         elif policy_params:
-            field = policy_params._meta.get_field(parameters)
             parameters = policy_params.parameters
     except:
         pass
