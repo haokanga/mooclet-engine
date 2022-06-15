@@ -232,8 +232,10 @@ def map_version_to_reward(
     data = data.sort_values(by='reward_create_time', ascending=True)
     data["reward_create_time"] = data["reward_create_time"].astype(str)
     data["arm_assign_time"] = data["arm_assign_time"].astype(str)
+    data = data.drop(columns=["version"])
     data = data.assign(Index=range(len(data))).set_index('Index')
 
+    columns.remove("version")
     return data, columns
 
 

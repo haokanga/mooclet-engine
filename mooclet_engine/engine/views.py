@@ -478,7 +478,7 @@ class ExportExcelValues(APIView):
 
                     single_param_histories = select_param_histories.filter(policy=policy)
                     single_parameters = select_parameters.filter(policy=policy)
-                    batch_values = select_values.filter(Q(policy__isnull=True) | Q(policy__in=policies))
+                    batch_values = select_values.filter(Q(policy__isnull=True) | Q(policy=policy))
 
                     prev_checkpoint = None
                     update_count = 0
