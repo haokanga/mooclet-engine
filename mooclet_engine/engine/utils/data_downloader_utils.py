@@ -85,7 +85,7 @@ def map_version_to_reward(
         elif policy_params:
             field = policy_params._meta.get_field(parameters)
             parameters = policy_params.parameters
-    except FieldDoesNotExist:
+    except:
         pass
 
     # Add Coulmns for Policy parameters
