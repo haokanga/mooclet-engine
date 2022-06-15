@@ -346,11 +346,11 @@ class ExportExcelValues(APIView):
             return Response({"error": "Variable not found"}, status=404)
         
         reward_arg_dict = {}
-        set_if_not_none(variable_arg_dict, "pk", query_params.get("reward", None))
-        set_if_not_none(variable_arg_dict, "name", query_params.get("reward__name", None))
+        set_if_not_none(reward_arg_dict, "pk", query_params.get("reward", None))
+        set_if_not_none(reward_arg_dict, "name", query_params.get("reward__name", None))
         
         try:
-            reward_variables = Variable.objects.filter(**variable_arg_dict)
+            reward_variables = Variable.objects.filter(**reward_arg_dict)
         except:
             return Response({"error": "Variable reward not found"}, status=404)
         
