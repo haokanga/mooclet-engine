@@ -29,6 +29,7 @@ def map_version_to_reward(
     policy,  
     rewards, 
     variables,
+    versions,
     update_group=0,
     policy_params=None, 
     policy_params_history=None
@@ -40,6 +41,7 @@ def map_version_to_reward(
         policy: Model object. Indicates the selected Policy instance.
         rewards: QuerySet object. Indicates the reward in Variable instances.
         variables: QuerySet object. Indicates the selected Variable instances.
+        versions: QuerySet object. Indicates the selected Version instances.
         update_group: Int. Indicates which update group for the datapoints.
         policy_params: Model object. Indicates the selected PolicyParameters 
             instances. Can be optional.
@@ -57,6 +59,9 @@ def map_version_to_reward(
     policy_name = policy.name
     variable_names = list(variables.values_list('name', flat=True))
     reward_names = list(rewards.values_list('name', flat=True))
+    version_action_space_names = list(versions.first().version_json.keys())
+
+    print("version_action_space_names: {}".format(version_action_space_names))
 
     # Create columns specified for the datapoints.
     columns = ["study", "learner", "arm_assign_time", "policy", "arm", "reward_name"] 
@@ -93,28 +98,34 @@ def map_version_to_reward(
     # Initialize DataFrame with columns
     data = pd.DataFrame(columns=columns)
 
+    value_fields = [
+        "mooclet__name",
+        "learner__pk",
+        "learner__name",
+        "policy__name",
+        "version__name",
+        "variable__name",
+        "value",
+        "timestamp"
+    ]
+
+    rename_columns = {
+        "mooclet__name": "study",
+        "learner__pk": "learner_id",
+        "learner__name": "learner",
+        "policy__name": "policy",
+        "version__name": "arm",
+        "variable__name": "name"
+    }
+
+    for action_name in version_action_space_names:
+        value_fields.append("version__version_json__{}".format(action_name))
+        rename_columns["version__version_json__{}".format(action_name)] = action_name
+
     value_df = pd.DataFrame.from_records(
-        values.values(
-            "mooclet__name",
-            "learner__pk",
-            "learner__name",
-            "policy__name",
-            "version__name",
-            "version_json"
-            "variable__name",
-            "value",
-            "timestamp"
-        )
+        values.values(*value_fields)
     ).rename(
-        columns={
-            "mooclet__name": "study",
-            "learner__pk": "learner_id",
-            "learner__name": "learner",
-            "policy__name": "policy",
-            "version__name": "arm",
-            "version_json": "action_space",
-            "variable__name": "name"
-        }
+        columns=rename_columns
     )
 
     print("value_df: ")
@@ -143,7 +154,7 @@ def map_version_to_reward(
         }
         datapoint_dict.update(parameter_dict)
 
-        action_space = dict(version_row["action_space"])
+        # action_space = dict(version_row["action_space"])
 
         # Mapping rewards
         time_range = reward_df["timestamp"] > datapoint_dict["arm_assign_time"]
@@ -191,8 +202,8 @@ def map_version_to_reward(
                 # Get all checking conditions
                 check_update = record_df["user_id"] == version_row["learner_id"]
                 check_update &= record_df[reward_row["name"]] == reward_row["value"]
-                for action_name, action_value in action_space.items():
-                    check_update &= record_df[action_name] == action_value
+                # for action_name, action_value in action_space.items():
+                #     check_update &= record_df[action_name] == action_value
                 
                 if len(record_df[check_update].index) != 0:
                     # We have a updating datapoint
