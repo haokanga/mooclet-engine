@@ -64,7 +64,8 @@ def map_version_to_reward(
     print("version_action_space_names: {}".format(version_action_space_names))
 
     # Create columns specified for the datapoints.
-    columns = ["study", "learner", "arm_assign_time", "policy", "arm", "reward_name"] 
+    columns = ["study", "learner", "arm_assign_time", "policy", "reward_name", "arm"]
+    columns += version_action_space_names
     columns += variable_names 
     columns += [ "reward_create_time"]
 
@@ -140,7 +141,7 @@ def map_version_to_reward(
     context_df.reset_index(inplace=True)
 
     record_df = pd.DataFrame(columns=["user_id"])
-    if "update_record" in parameters and policy_params is None:
+    if parameters and not policy_params and "update_record" in parameters:
         record_df = pd.concat([record_df, pd.DataFrame(parameters["update_record"])])
 
     update_datapoint_count = 0
