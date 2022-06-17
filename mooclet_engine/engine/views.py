@@ -428,7 +428,7 @@ class ExportExcelValues(APIView):
         # related to the mooclet instance.
         if len(all_variables) != 0:
             variables = variables.filter(name__in=all_variables)
-        elif len(list(variables) == list(Variable.objects.all())):
+        elif list(variables) == list(Variable.objects.all()):
             # Set variables to reward variables if there is no restriction to variables.
             variables = reward_variables.all()
         
