@@ -152,7 +152,6 @@ def map_version_to_reward(
     if parameters and not policy_params and "update_record" in parameters:
         record_df = pd.concat([record_df, pd.DataFrame(parameters["update_record"])])
 
-    update_datapoint_count = 0
     for version_index, version_row in version_df.iterrows():
         datapoint_dict = {
             "study": version_row["study"],
@@ -210,7 +209,7 @@ def map_version_to_reward(
                 reward_datapoint.update(context_datapoint)
 
             # Check if reward is used for updating parameters
-            if update_datapoint_count < len(record_df.index):
+            if len(record_df.index) > 0:
                 # Get all checking conditions
                 check_update = record_df["user_id"] == version_row["learner_id"]
                 check_update &= record_df[reward_row["name"]] == reward_row["value"]
@@ -220,7 +219,7 @@ def map_version_to_reward(
                 if len(record_df[check_update].index) != 0:
                     # We have a updating datapoint
                     reward_datapoint["update_group"] = update_group
-                    update_datapoint_count += 1
+                    record_df = record_df.iloc[1:, :].reset_index(drop=True)
             
             reward_datapoint.update(datapoint_dict)
 
