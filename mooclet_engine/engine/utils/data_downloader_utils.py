@@ -228,7 +228,8 @@ def map_version_to_reward(
             data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])])
     
     # Return sorted datapoints by reward created time (from oldest to newest).
-    columns.remove("version")
+    if "version" in columns:
+        columns.remove("version")
     data = data.sort_values(by='reward_create_time', ascending=True)
     data["reward_create_time"] = data["reward_create_time"].astype(str)
     data["arm_assign_time"] = data["arm_assign_time"].astype(str)
