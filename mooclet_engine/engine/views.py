@@ -281,7 +281,7 @@ class ExportExcelValues(APIView):
         }
     }
 
-    # Url: /datadownload/?mooclet=XX&mooclet__name=&version=&version__name=&learner=&learner__name=/
+    # Url: /dataDownload/mooclet=&mooclet__name=&learner=&learner__name=&version=&version__name=&reward=&reward__name=&policy=/
     def get(self, request):
         query_params = dict(request.query_params)
 
@@ -394,13 +394,12 @@ class ExportExcelValues(APIView):
             }
             select_parameters = PolicyParameters.objects.filter(**select_parameters_kargs)
         
+        # Get a set of all variables and reward variables related to the mooclet instance.
+        all_variables = []
+        all_reward_variables = []
         if select_parameters.exists():
             print("policies after: {}".format(policies.query))
             print("select_parameters: {}".format(select_parameters.query))
-            
-            # Get a set of all variables and reward variables related to the mooclet instance.
-            all_variables = []
-            all_reward_variables = []
             for param in select_parameters:
                 parameters = dict(param.parameters)
                 print("parameter: {}".format(parameters))
@@ -421,13 +420,17 @@ class ExportExcelValues(APIView):
                 print("all_variables: {}".format(all_variables))
                 print("all_reward_variables: {}".format(all_reward_variables))
         
-            # If no variable specified, update variables QuerySet so that only contains variables 
-            # related to the mooclet instance.
-            if len(variable_arg_dict) == 0 and len(all_variables) != 0:
-                variables = variables.filter(name__in=all_variables)
-
-            if len(reward_arg_dict) == 0 and len(all_reward_variables) != 0:
-                reward_variables = variables.filter(name__in=all_reward_variables)
+        # Find all reward varaibles if reward is not specified.
+        if len(all_reward_variables) != 0 and len(reward_arg_dict) == 0:
+            reward_variables = variables.filter(name__in=all_reward_variables)
+        
+        # If no variable specified, update variables QuerySet so that only contains variables 
+        # related to the mooclet instance.
+        if len(all_variables) != 0:
+            variables = variables.filter(name__in=all_variables)
+        elif len(list(variables) == list(Variable.objects.all())):
+            # Set variables to reward variables if there is no restriction to variables.
+            variables = reward_variables.all()
         
         if not reward_variables.exists():
             return Response({"error": "invalid reward"}, status=400)
