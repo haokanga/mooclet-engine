@@ -371,28 +371,8 @@ class ExportExcelValues(APIView):
 
         # The Model Queries
         # 1) select_parameters - Policy parameters
-        if len(policy_arg_dict) == 0:
-            # Find a QuerySet of PolicyParameters instances by mooclet.
-            select_parameters = PolicyParameters.objects.filter(mooclet=mooclet)
-
-            # # Check if contextual policy is used in the mooclet instance.
-            # contextual_parameters = select_parameters.filter(policy__in=Policy.objects.filter(name__contains="contextual"))
-            
-            # # If no policy specified, Update policies QuerySet so that only contains policies 
-            # # related to the mooclet instance.
-            # try:
-            #     policy_list = list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct())
-            #     print("list all policies: {}".format(policy_list))
-            #     policies = policies.filter(pk__in=policy_list)
-            # except:
-            #     return Response({"error": "Unknown field: 'policy'"}, status=400)
-        else:
-            # Find a QuerySet of PolicyParameters instances by mooclet and policy.
-            select_parameters_kargs = {
-                "mooclet": mooclet,
-                "policy": policies.first()
-            }
-            select_parameters = PolicyParameters.objects.filter(**select_parameters_kargs)
+        # Find a QuerySet of PolicyParameters instances by mooclet.
+        select_parameters = PolicyParameters.objects.filter(mooclet=mooclet)
         
         # Get a set of all variables and reward variables related to the mooclet instance.
         all_variables = []
@@ -437,6 +417,23 @@ class ExportExcelValues(APIView):
 
         print("variables: {}".format(variables.query))
         print("reward_variables: {}".format(reward_variables.query))
+
+        if len(policy_arg_dict) != 0:
+            # Find a QuerySet of PolicyParameters instances by mooclet and policy.
+            select_parameters_kargs = {
+                "mooclet": mooclet,
+                "policy": policies.first()
+            }
+            select_parameters = PolicyParameters.objects.filter(**select_parameters_kargs)
+            
+        # # If no policy specified, Update policies QuerySet so that only contains policies 
+        # # related to the mooclet instance.
+        # try:
+        #     policy_list = list(Value.objects.filter(mooclet=mooclet).exclude(policy__isnull=True).values_list('policy').distinct())
+        #     print("list all policies: {}".format(policy_list))
+        #     policies = policies.filter(pk__in=policy_list)
+        # except:
+        #     return Response({"error": "Unknown field: 'policy'"}, status=400)
 
         # 2) select_param_histories - Policy parameters history
         # This QuerySet is sorted by creation_time (oldest to newest).
