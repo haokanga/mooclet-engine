@@ -82,6 +82,51 @@ def choose_policy_group(variables, context):
 			version_dict["policy_id"] = usr_policy.id
 			return version_dict
 
+def choose_mooclet_group(variables, context):
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Mooclet = apps.get_model('engine', 'Mooclet')
+
+	var_name = str(context["mooclet"])+"_choose_mooclet_group"
+	grp_var, created = Variable.objects.get_or_create(name=var_name)
+
+	if "learner" not in context:
+		return {"error": "please provide a learner ID"}
+	else:
+		if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+			print("found prior mooclet")
+			user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+			user_group = user_grp.text
+			print("prior mooclet: " + user_group)
+			user_mooclet = Mooclet.objects.get(name=user_group)
+			version = user_mooclet.run(context={"learner":context["learner"]})
+			if type(version) != dict:
+				version_dict = model_to_dict(version)
+			else:
+				version_dict = version
+			return version_dict
+		else:
+			print("selecting mooclet")
+			policy_parameters = context["policy_parameters"].parameters
+			mooclet_options = policy_parameters["mooclet_options"]
+			print("options:")
+			print(mooclet_options)
+			mooclets = []
+			weights = []
+			for k, v in mooclet_options.items():
+				mooclets.append(k)
+				weights.append(v)
+			chosen_mooclet = choice(mooclets, p=weights)
+			print("chosen mooclet: " + chosen_mooclet)
+			Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_mooclet)
+			usr_mooclet = Mooclet.objects.get(name=chosen_mooclet)
+			version = usr_mooclet.run(context={"learner":context["learner"]})
+			if type(version) != dict:
+				version_dict = model_to_dict(version)
+			else:
+				version_dict = version
+			return version_dict
+
 
 def weighted_random(variables,context):
 	Value = apps.get_model('engine', 'Value')
