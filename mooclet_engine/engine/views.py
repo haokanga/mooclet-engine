@@ -64,6 +64,8 @@ class MoocletViewSet(viewsets.ModelViewSet):
                             )
         if "policy_id" in serialized_version:
             version_shown.policy = Policy.objects.get(id=serialized_version["policy_id"])
+        if "mooclet" in serialized_version:
+            version_shown.mooclet = Mooclet.objects.get(pk=serialized_version["mooclet"])
         version_shown.save()
         return Response(serialized_version)
 
