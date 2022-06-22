@@ -62,7 +62,7 @@ def map_version_to_reward(
     reward_names = list(rewards.values_list('name', flat=True))
     version_action_space_names = list(versions.first().version_json.keys())
 
-    print("version_action_space_names: {}".format(version_action_space_names))
+    # print("version_action_space_names: {}".format(version_action_space_names))
 
     # Create columns specified for the datapoints.
     columns = ["study", "learner", "arm_assign_time", "policy", "reward_name", "arm"]
@@ -93,7 +93,7 @@ def map_version_to_reward(
     columns += parameter_names
     columns += ["update_group"]
 
-    print("columns: {}".format(columns))
+    # print("columns: {}".format(columns))
 
     # Initialize DataFrame with columns
     data = pd.DataFrame(columns=columns)
@@ -128,8 +128,8 @@ def map_version_to_reward(
         columns=rename_columns
     )
 
-    print("value_df: ")
-    print(value_df)
+    # print("value_df: ")
+    # print(value_df)
 
     version_df = value_df[value_df.name == "version"]
     reward_df = value_df[value_df.name.isin(reward_names)]
@@ -139,14 +139,14 @@ def map_version_to_reward(
     reward_df.reset_index(inplace=True)
     context_df.reset_index(inplace=True)
 
-    print("version_df: ")
-    print(version_df)
+    # print("version_df: ")
+    # print(version_df)
 
-    print("reward_df: ")
-    print(reward_df)
+    # print("reward_df: ")
+    # print(reward_df)
 
-    print("context_df: ")
-    print(context_df)
+    # print("context_df: ")
+    # print(context_df)
 
     record_df = pd.DataFrame(columns=["user_id"])
     if parameters and not policy_params and "update_record" in parameters:
@@ -223,8 +223,12 @@ def map_version_to_reward(
             
             reward_datapoint.update(datapoint_dict)
 
-            print("reward_datapoint: {}")
+            # There is a arm-reward matched. The new datapoint can be appended to the dataframe.
             data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])])
+            continue
+        
+        # There is no arm-reward matched. The missing data should be appended to the dataframe.
+        data = pd.concat([data, pd.DataFrame.from_records([datapoint_dict])])
     
     # Return sorted datapoints by reward created time (from oldest to newest).
     if "version" in columns:
