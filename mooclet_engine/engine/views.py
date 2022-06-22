@@ -294,14 +294,14 @@ class ExportExcelValues(APIView):
         if len(mooclet_arg_dict) == 0:
             return Response({"error": "invalid request"}, status=500)
 
-        print("query_params: {}".format(query_params))
-        print("mooclet_arg_dict: {}".format(mooclet_arg_dict))
+        # print("query_params: {}".format(query_params))
+        # print("mooclet_arg_dict: {}".format(mooclet_arg_dict))
         try:
             mooclet = Mooclet.objects.get(**mooclet_arg_dict)
         except:
             return Response({"error": "Mooclet not found"}, status=404)
         
-        print("mooclet: {}".format(mooclet.pk))
+        # print("mooclet: {}".format(mooclet.pk))
         
         # Find a QuerySet instance of Version by version id or name. 
         # This instance is optional. If no arguments are given, then look for 
@@ -315,7 +315,7 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Version not found"}, status=404)
         
-        print("versions: {}".format(versions.query))
+        # print("versions: {}".format(versions.query))
 
         # Find a QuerySet instance of Learner by learner id or name. 
         # This instance is optional. If no arguments are given, then look for 
@@ -356,7 +356,7 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Variable reward not found"}, status=404)
         
-        print("GET REWARD: {}".format(reward_variables.query))
+        # print("GET REWARD: {}".format(reward_variables.query))
         
         # Find a QuerySet instance of Policy by policy id. 
         # This instance is optional. If no arguments are given, then look for 
@@ -369,7 +369,7 @@ class ExportExcelValues(APIView):
         except:
             return Response({"error": "Policy not found"}, status=404)
 
-        print("policies before: {}".format(policies.query))
+        # print("policies before: {}".format(policies.query))
 
         # The Model Queries
         # 1) select_parameters - Policy parameters
@@ -380,18 +380,18 @@ class ExportExcelValues(APIView):
         all_variables = []
         all_reward_variables = []
         if select_parameters.exists():
-            print("policies after: {}".format(policies.query))
-            print("select_parameters: {}".format(select_parameters.query))
+            # print("policies after: {}".format(policies.query))
+            # print("select_parameters: {}".format(select_parameters.query))
             for param in select_parameters:
                 parameters = dict(param.parameters)
-                print("parameter: {}".format(parameters))
+                # print("parameter: {}".format(parameters))
 
                 # Add all contextual variables.
                 for contextual_param_alias in self.VARIABLE_NAMES["contextual"]["aliases"]:
                     if contextual_param_alias in parameters:
                         all_variables += list(set(parameters[contextual_param_alias]) - set(all_variables))
                 
-                print("contextual all variables: {}".format(all_variables))
+                # print("contextual all variables: {}".format(all_variables))
                 
                 # Add all reward variables.
                 for reward_param_alias in self.VARIABLE_NAMES["reward"]["aliases"]:
@@ -399,8 +399,8 @@ class ExportExcelValues(APIView):
                         all_variables += list(set([parameters[reward_param_alias]]) - set(all_variables))
                         all_reward_variables += list(set([parameters[reward_param_alias]]) - set(all_reward_variables))
 
-                print("all_variables: {}".format(all_variables))
-                print("all_reward_variables: {}".format(all_reward_variables))
+                # print("all_variables: {}".format(all_variables))
+                # print("all_reward_variables: {}".format(all_reward_variables))
         
         # Find all reward varaibles if reward is not specified.
         if len(all_reward_variables) != 0 and len(reward_arg_dict) == 0:
@@ -417,8 +417,8 @@ class ExportExcelValues(APIView):
         if not reward_variables.exists():
             return Response({"error": "invalid reward"}, status=400)
 
-        print("variables: {}".format(variables.query))
-        print("reward_variables: {}".format(reward_variables.query))
+        # print("variables: {}".format(variables.query))
+        # print("reward_variables: {}".format(reward_variables.query))
 
         if len(policy_arg_dict) != 0:
             # Find a QuerySet of PolicyParameters instances by mooclet and policy.
@@ -442,7 +442,7 @@ class ExportExcelValues(APIView):
         # This QuerySet can specified by policy.
         select_param_histories = PolicyParametersHistory.objects.order_by("creation_time").filter(Q(mooclet=mooclet) & Q(policy__in=policies))
 
-        print("select_param_histories: {}".format(select_param_histories.query))
+        # print("select_param_histories: {}".format(select_param_histories.query))
 
         # 3) select_param_histories - Value
         # This QuerySet is sorted by timestamp (oldest to newest).
@@ -460,7 +460,7 @@ class ExportExcelValues(APIView):
         # Find a QuerySet object of Value by mooclet, learner, and variable.
         select_values = Value.objects.order_by("timestamp").filter(**select_values_kargs)
 
-        print("select_values: {}".format(select_values.query))
+        # print("select_values: {}".format(select_values.query))
 
         # version and policy can be NULL. 
         # Need to filter QuerySet value by version and policy but allow these two fields to be NULL.
@@ -472,7 +472,7 @@ class ExportExcelValues(APIView):
         # Exclude all values which has NULL in learner and variable fields.
         select_values = select_values.exclude(Q(learner__isnull=True) | Q(variable__isnull=True))
 
-        print("select_values: {}".format(select_values.query))
+        # print("select_values: {}".format(select_values.query))
 
         # Check if there are any existing values.
         if not select_values.exists():
@@ -546,8 +546,8 @@ class ExportExcelValues(APIView):
                     if len(datapoint_frames) != 0:
                         policy_datapoints = pd.concat(datapoint_frames)
 
-                        print("{} {} policy_datapoints:".format(policy_idx, policy.name))
-                        print(policy_datapoints)
+                        # print("{} {} policy_datapoints:".format(policy_idx, policy.name))
+                        # print(policy_datapoints)
                         if len(policy_datapoints.index) != 0:
                             policy_name_lst = policy.name.replace(" ", "_").split("_")
                             policy_datapoints.to_excel(
