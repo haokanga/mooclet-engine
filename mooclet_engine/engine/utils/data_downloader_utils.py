@@ -228,10 +228,9 @@ def map_version_to_reward(
 
             # There is a arm-reward matched. The new datapoint can be appended to the dataframe.
             data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])])
-            continue
-        
-        # There is no arm-reward matched. The missing data should be appended to the dataframe.
-        data = pd.concat([data, pd.DataFrame.from_records([datapoint_dict])])
+        else:
+            # There is no arm-reward matched. The missing data should be appended to the dataframe.
+            data = pd.concat([data, pd.DataFrame.from_records([datapoint_dict])])
     
     # Return sorted datapoints by reward created time (from oldest to newest).
     if "version" in columns:
