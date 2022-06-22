@@ -190,8 +190,13 @@ def map_version_to_reward(
         mapped_rewards = reward_df[time_range & same_mooclet & same_learner & same_policy & same_version]
         reward_df = reward_df.drop(mapped_rewards.index)
         
-        print("version {} has mapped_rewards:".format(version_row))
+        print("version {} has mapped_rewards:".format(version_row["arm"]))
         print(mapped_rewards)
+        
+        if len(mapped_rewards.index) == 0:
+            # There is no arm-reward matched. The missing data should be appended to the dataframe.
+            data = pd.concat([data, pd.DataFrame.from_records([datapoint_dict])], sort=False)
+            continue
 
         for reward_index, reward_row in mapped_rewards.iterrows():
             reward_datapoint = {
@@ -230,10 +235,7 @@ def map_version_to_reward(
             reward_datapoint.update(datapoint_dict)
 
             # There is a arm-reward matched. The new datapoint can be appended to the dataframe.
-            data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])])
-        else:
-            # There is no arm-reward matched. The missing data should be appended to the dataframe.
-            data = pd.concat([data, pd.DataFrame.from_records([datapoint_dict])])
+            data = pd.concat([data, pd.DataFrame.from_records([reward_datapoint])], sort=False)
     
     # Return sorted datapoints by reward created time (from oldest to newest).
     if "version" in columns:
