@@ -189,6 +189,9 @@ def map_version_to_reward(
         
         mapped_rewards = reward_df[time_range & same_mooclet & same_learner & same_policy & same_version]
         reward_df = reward_df.drop(mapped_rewards.index)
+        
+        print("version {} has mapped_rewards:".format(version_row))
+        print(mapped_rewards)
 
         for reward_index, reward_row in mapped_rewards.iterrows():
             reward_datapoint = {
