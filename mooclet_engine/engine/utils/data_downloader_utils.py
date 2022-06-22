@@ -32,7 +32,8 @@ def map_version_to_reward(
     versions,
     update_group=0,
     policy_params=None, 
-    policy_params_history=None
+    policy_params_history=None,
+    sorted_by="arm"
 ):
     '''
     args:
@@ -47,6 +48,8 @@ def map_version_to_reward(
             instances. Can be optional.
         policy_params_history: Model object. Indicates the selected 
             PolicyParametersHistory instances. Can be optional.
+        sorted_by: String. Indicates the sorting strategy for the datapoints. 
+            Default is sorted by arm assigned time.
     
     returns:
         data: pandas.DataFrame object. Contains all data points for each reward 
@@ -233,7 +236,15 @@ def map_version_to_reward(
     # Return sorted datapoints by reward created time (from oldest to newest).
     if "version" in columns:
         columns.remove("version")
-    data = data.sort_values(by='reward_create_time', ascending=True)
+
+    # There are two sorting strategies: 
+    #   1) sorted by arm assigned time (from oldest to newest); 
+    #   2) sorted by reward created time (from oldest to newest).
+    if sorted_by == "reward":
+        data = data.sort_values(by='reward_create_time', ascending=True)
+    else:
+        data = data.sort_values(by='arm_assign_time', ascending=True)
+
     data["reward_create_time"] = data["reward_create_time"].astype(str)
     data["arm_assign_time"] = data["arm_assign_time"].astype(str)
     data = data[columns]

@@ -538,7 +538,8 @@ class ExportExcelValues(APIView):
                             variables,
                             versions,
                             update_group=update_count,
-                            policy_params=single_parameters
+                            policy_params=single_parameters,
+                            sorted_by=query_params.get("sorted_by", "arm")
                         )
                         datapoint_frames.append(data)
                     
