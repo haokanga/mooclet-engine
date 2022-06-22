@@ -129,14 +129,11 @@ def choose_mooclet_group(variables, context):
 
 
 def weighted_random(variables,context):
-	Value = apps.get_model('engine', 'Value')
-	Weight = variables.get(name='version_weight')
-	weight_data = Value.objects.filter(variable=Weight, version__in=context['mooclet'].version_set.all())
-	versions = [weight.version for weight in weight_data]
-	weights = [weight.value for weight in weight_data]
-	return choice(versions, p=weights)
-	#print(version)
-
+    all_versions = context['mooclet'].version_set.all()
+    policy_parameters = context["policy_parameters"].parameters
+    prob_dist = policy_parameters["probability_distribution"]
+    weights = [prob_dist[version.name] if version.name in prob_dist else 0.0 for version in all_versions]
+    return choice(all_versions, p=weights)
 
 
 def weighted_random_time(variables, context):
