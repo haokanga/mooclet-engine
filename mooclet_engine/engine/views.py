@@ -1,3 +1,4 @@
+from crypt import methods
 from rest_framework import viewsets
 from rest_pandas import PandasView
 from .models import *
@@ -13,7 +14,6 @@ from django.shortcuts import get_object_or_404
 import pandas as pd
 import numpy as np
 import json
-import csv
 
 # rest framework viewsets
 
@@ -56,6 +56,61 @@ class MoocletViewSet(viewsets.ModelViewSet):
         version_shown = Value(
                             learner=learner,
                             variable=Version,
+                            mooclet=self.get_object(),
+                            policy=self.get_object().policy,
+                            version_id=version_id,
+                            value=version_id,
+                            text=version_name
+                            )
+        if "policy_id" in serialized_version:
+            version_shown.policy = Policy.objects.get(id=serialized_version["policy_id"])
+        if "mooclet" in serialized_version:
+            version_shown.mooclet = Mooclet.objects.get(pk=serialized_version["mooclet"])
+        version_shown.save()
+        return Response(serialized_version)
+    
+    @action(detail=True, methods=["post"])
+    def run_with_arms(self, request, pk=None):
+        req = json.loads(request.body)
+        policy = request.POST.get('policy',None)
+        context = {}
+        learner = None
+        if request.POST.get('user_id', None):
+            learner, created = Learner.objects.get_or_create(name=request.GET.get('user_id', None))
+        elif request.POST.get('learner', None):
+            learner, created = Learner.objects.get_or_create(name=request.GET.get('learner', None))
+        context['learner'] = learner
+        
+        # print(f"req: {req}")
+        arms = req.get("arms", None)
+        if arms is not None:
+            try:
+                allowed_versions = Version.objects.filter(name__in=arms)
+            except:
+                return Response({"error": "invalid arm set"}, status=400)
+            context['allowed_versions'] = allowed_versions
+            context['maximum_allowed'] = req.get("max_time", 20)
+            
+            # print("allowed_versions: {}".format(context['allowed_versions']))
+            # print("maximum_allowed: {}".format(context['maximum_allowed']))
+        
+        version = self.get_object().run(context=context)
+        #print version
+        version_variable, created = Variable.objects.get_or_create(name='version')
+        #TODO: clean this up
+        if type(version) is dict:
+            version_id = version['id']
+            version_name = version['name']
+            serialized_version = version
+        else:
+            version_id = version.id
+            version_name = version.name
+            serialized_version = VersionSerializer(version).data#.save()
+            #serialized_version = serialized_version.data
+
+        version_shown = Value(
+                            learner=learner,
+                            variable=version_variable,
                             mooclet=self.get_object(),
                             policy=self.get_object().policy,
                             version_id=version_id,

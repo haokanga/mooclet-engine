@@ -7,7 +7,7 @@ from . import policies
 from django.http import Http404
 from django.utils import timezone
 
-
+from numpy.random import choice
 
 class Environment(models.Model):
     name = models.CharField(max_length=200,default='')
@@ -205,6 +205,42 @@ class Policy(models.Model):
         variables = self.get_variables()
         #variables = []
         version = policy_function(variables,context)
+        if type(version) is dict:
+            version_id = version["id"]
+        else:
+            version_id = version.id
+        
+        # print(f"version_id: {version_id}")
+        
+        if 'allowed_versions' in context:
+            allowed_versions = context['allowed_versions']
+            max_time = context.get("maximum_allowed", 20)
+            
+            # print(f"allowed_versions: {allowed_versions}")
+            # print(f"max_time: {max_time}")
+            
+            count = 1
+            
+            # print(f"{'-' * 12} COUNT {count} {'-' * 12}")
+            # print("filter: {}".format(allowed_versions.filter(pk=version_id).exists()))
+            
+            while (not allowed_versions.filter(pk=version_id).exists() and count < max_time):
+                version = policy_function(variables,context)
+                if type(version) is dict:
+                    version_id = version["id"]
+                else:
+                    version_id = version.id
+                count += 1
+                
+                # print(f"version_id: {version_id}")
+                
+                # print(f"{'-' * 12} COUNT {count} {'-' * 12}")
+            
+            if count == max_time:
+                version = choice(list(allowed_versions))
+                
+                print(f"tried {max_time} times")
+                print(f"randomly select an arm: {version}")
         #version = policies.uniform_random(variables, context)
 
         return version
