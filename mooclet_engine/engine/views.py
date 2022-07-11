@@ -67,17 +67,27 @@ class MoocletViewSet(viewsets.ModelViewSet):
         if "mooclet" in serialized_version:
             version_shown.mooclet = Mooclet.objects.get(pk=serialized_version["mooclet"])
         version_shown.save()
+        
+        if "policy" not in serialized_version:
+            serialized_version["policy"] = self.get_object().policy.name
+        if "policy_id" not in serialized_version:
+            serialized_version["policy_id"] = self.get_object().policy.id
+        
         return Response(serialized_version)
     
     @action(detail=True, methods=["post"])
     def run_with_arms(self, request, pk=None):
-        req = json.loads(request.body)
-        policy = request.POST.get('policy',None)
+        req = dict(request.data)
+        print("method: {}".format(request.method))
+        print("req: {}".format(request.data))
+        print("get: {}".format(request.GET))
+        policy = request.GET.get('policy',None)
+        
         context = {}
         learner = None
-        if request.POST.get('user_id', None):
+        if request.GET.get('user_id', None):
             learner, created = Learner.objects.get_or_create(name=request.GET.get('user_id', None))
-        elif request.POST.get('learner', None):
+        elif request.GET.get('learner', None):
             learner, created = Learner.objects.get_or_create(name=request.GET.get('learner', None))
         context['learner'] = learner
         
@@ -122,6 +132,12 @@ class MoocletViewSet(viewsets.ModelViewSet):
         if "mooclet" in serialized_version:
             version_shown.mooclet = Mooclet.objects.get(pk=serialized_version["mooclet"])
         version_shown.save()
+        
+        if "policy" not in serialized_version:
+            serialized_version["policy"] = self.get_object().policy.name
+        if "policy_id" not in serialized_version:
+            serialized_version["policy_id"] = self.get_object().policy.id
+        
         return Response(serialized_version)
 
 class VersionViewSet(viewsets.ModelViewSet):

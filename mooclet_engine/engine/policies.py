@@ -43,44 +43,78 @@ def choose_policy_group(variables, context):
 
 	if "learner" not in context:
 		return {"error": "please provide a learner ID"}
+
+	if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+		print("found prior policy")
+		user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+		chosen_policy = user_grp.text
+		print("prior policy: " + chosen_policy)
 	else:
-		if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
-			print("found prior policy")
-			user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
-			user_group = user_grp.text
-			print("prior policy: " + user_group)
-			user_policy = Policy.objects.get(name=user_group)
-			version = user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"],  "used_choose_group": True})
-			if type(version) != dict:
-				version_dict = model_to_dict(version)
-			else:
-				version_dict = version
-			version_dict["policy"] = user_group
-			version_dict["policy_id"] = user_policy.id
-			return version_dict
+		print("selecting policy")
+		policy_parameters = context["policy_parameters"].parameters
+		policy_options = policy_parameters["policy_options"]
+		print("options:")
+		print(policy_options)
+		policies = []
+		weights = []
+		for k, v in policy_options.items():
+			policies.append(k)
+			weights.append(v)
+		chosen_policy = choice(policies, p=weights)
+		print("chosen policy: " + chosen_policy)
+		Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
+
+	user_policy = Policy.objects.get(name=chosen_policy)
+	version = user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"], "used_choose_group": True})
+
+	if 'allowed_versions' in context:
+		count = 1
+		allowed_versions = context.get('allowed_versions', list(context['mooclet'].version_set.all()))
+		if type(version) != dict:
+			version_id = version.id
 		else:
-			print("selecting policy")
-			policy_parameters = context["policy_parameters"].parameters
-			policy_options = policy_parameters["policy_options"]
-			print("options:")
-			print(policy_options)
-			policies = []
-			weights = []
-			for k, v in policy_options.items():
-				policies.append(k)
-				weights.append(v)
-			chosen_policy = choice(policies, p=weights)
-			print("chosen policy: " + chosen_policy)
-			Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
-			usr_policy = Policy.objects.get(name=chosen_policy)
-			version =  usr_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"], "used_choose_group": True})
-			if type(version) != dict:
-				version_dict = model_to_dict(version)
+			version_id = version["id"]
+  
+		while (not allowed_versions.filter(pk=version_id).exists()) and count < context.get("maximum_allowed", 20):
+			count += 1
+			if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+				print("found prior policy")
+				user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+				chosen_policy = user_grp.text
+				print("prior policy: " + chosen_policy)
 			else:
-				version_dict = version
-			version_dict["policy"] = chosen_policy
-			version_dict["policy_id"] = usr_policy.id
-			return version_dict
+				print("selecting policy")
+				policy_parameters = context["policy_parameters"].parameters
+				policy_options = policy_parameters["policy_options"]
+				print("options:")
+				print(policy_options)
+				policies = []
+				weights = []
+				for k, v in policy_options.items():
+					policies.append(k)
+					weights.append(v)
+				chosen_policy = choice(policies, p=weights)
+				print("chosen policy: " + chosen_policy)
+				Value.objects.create(variable=grp_var, learner=context["learner"], text=chosen_policy)
+
+			user_policy = Policy.objects.get(name=chosen_policy)
+			version = user_policy.run_policy({"mooclet":context["mooclet"], "learner":context["learner"], "used_choose_group": True})
+			if type(version) != dict:
+				version_id = version.id
+			else:
+				version_id = version["id"]
+
+		if not allowed_versions.filter(pk=version_id).exists() and count == context.get("maximum_allowed", 20):
+			print("RANDOM CHOOSE")
+			version = choice(context['mooclet'].version_set.all())
+
+	if type(version) != dict:
+		version_dict = model_to_dict(version)
+	else:
+		version_dict = version
+	version_dict["policy"] = chosen_policy
+	version_dict["policy_id"] = user_policy.id
+	return version_dict
 
 def choose_mooclet_group(variables, context):
 	Variable = apps.get_model('engine', 'Variable')
