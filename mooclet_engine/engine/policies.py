@@ -413,6 +413,8 @@ def if_then_rules(variables, context):
 		print(case)
 		if case != "else":
 			logical_statement = parameters[case]['logical_statement']
+			print(f"{'-' * 12} IF THEN RULES {'-' * 12}")
+			print("logical statement: ")
 			print(logical_statement)
 			#flag = False
 			# chunk = ''
@@ -432,9 +434,11 @@ def if_then_rules(variables, context):
 			# 		chunk = chunk + i
 
 			replace_variables = re.findall(r"{.*?}", logical_statement)
+			print("replace variables: ")
 			print(replace_variables)
 			logical_statement_clean = logical_statement
 			var_dict = {}
+			print("learner name: ")
 			print(context['learner'].name)
 			for variable in replace_variables:
 				#format {var_name|mooclet=mooclet|version=version}
@@ -451,6 +455,7 @@ def if_then_rules(variables, context):
 				query_args['learner'] = context['learner']
 
 				logical_statement_clean = logical_statement_clean.replace(variable, "{{{}}}".format(variable_name))
+				print("variable name: ")
 				print(variable_name)
 				# if variable == 'version|mooclet':
 				# 	pass
@@ -467,6 +472,7 @@ def if_then_rules(variables, context):
 			print("logical statement clean:")
 			print(logical_statement_clean)
 			logical_converted = logical_statement_clean.format(**var_dict)
+			print("logical converted: ")
 			print(logical_converted)
 			truth = None
 			try:
@@ -474,22 +480,32 @@ def if_then_rules(variables, context):
 			except:
 				pass #what should we do in this case (evaluation of statement fails)?
 			if truth:
+				print("case: ")
 				print(case)
 				weights = parameters[case]['probability_distribution']
-				version_name = choice(weights.keys(), p=weights.values())
+				version_name = choice(list(weights.keys()), p=list(weights.values()))
 				version = Version.objects.get(name=version_name, mooclet=context['mooclet'])
 				return version
 			else:
 				pass
 	if 'else' in parameters:
 		weights = parameters['else']
-		version_name = choice(weights.keys(), p=weights.values())
+		version_name = choice(list(weights.keys()), p=list(weights.values()))
 		version = Version.objects.get(name=version_name)
 		return version
-	else:
-		version_set = Version.objects.filter(mooclet=context['mooclet']).order_by('name')
-		return version_set.first()
-		#what do we do if all cases fail and no else? uniform random w/ a notation?
+
+	# Randomize between arms if no condition is reached.
+	version_to_show = choice(context['mooclet'].version_set.all())
+	if_then_rules_ur, created = Variable.objects.get_or_create(name="IF_THEN_RULES_UR")
+	Value.objects.create(
+		variable=if_then_rules_ur, 
+		value=1.0, 
+		text="IF_THEN_RULES_UR", 
+		learner=context["learner"], 
+		mooclet=context["mooclet"], 
+		version=version_to_show
+	)
+	return version_to_show
 
 # Runs exact same policy as above, but makes soure the output is a valid date
 
