@@ -3,6 +3,7 @@ from numpy.random import choice
 from collections import Counter
 import pandas as pd
 import numpy as np
+from django.db.models import Q
 from django.apps import apps
 import string
 
@@ -116,6 +117,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
     print("outcome: {}".format(outcome))
     vals_to_df = pd.DataFrame({},columns=variables)
     index = 0
+    lastest_timestamp = None
     assigned = {}
     for value in values:
         # print("ADDED VALUE: variable: {}, learner: ({}, {}), version: {}, policy: {}, value: {}, text: {}".format(
@@ -152,6 +154,7 @@ def values_to_df(mooclet, policyparams, latest_update=None):
             assigned[value.learner.id] = index
             # print("assigned: {}".format(assigned))
             index += 1
+            lastest_timestamp = value.timestamp
         else:
             # print("VALUE FOUND: User {}, ".format(value.learner.id))
             # print("assigned: {}".format(assigned))
@@ -167,6 +170,8 @@ def values_to_df(mooclet, policyparams, latest_update=None):
                 # find the last context value
                 context_values = Value.objects.filter(variable__name=context, mooclet=mooclet,
                                                       learner=value.learner).order_by('-timestamp')
+                if lastest_timestamp is not None:
+                    context_values = context_values.filter(Q(timestamp__lt=lastest_timestamp)).order_by('-timestamp')
                 if context_values.count() > 0:
                     vals_to_df.loc[assigned[value.learner.id], context] = context_values[0].value
                     # print("context logged")
