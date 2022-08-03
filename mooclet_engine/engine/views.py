@@ -81,14 +81,14 @@ class MoocletViewSet(viewsets.ModelViewSet):
         print("method: {}".format(request.method))
         print("req: {}".format(request.data))
         print("get: {}".format(request.GET))
-        policy = request.GET.get('policy',None)
+        policy = req.get('policy',None)
         
         context = {}
         learner = None
-        if request.GET.get('user_id', None):
-            learner, created = Learner.objects.get_or_create(name=request.GET.get('user_id', None))
-        elif request.GET.get('learner', None):
-            learner, created = Learner.objects.get_or_create(name=request.GET.get('learner', None))
+        if req.get('user_id', None):
+            learner, created = Learner.objects.get_or_create(name=req.get('user_id', None))
+        elif req.get('learner', None):
+            learner, created = Learner.objects.get_or_create(name=req.get('learner', None))
         context['learner'] = learner
         
         # print(f"req: {req}")
