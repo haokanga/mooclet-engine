@@ -1,5 +1,4 @@
 amqp==2.5.1
-base==1.0.4
 billiard==3.6.1.0
 celery==4.3.0
 certifi==2019.9.11
@@ -30,17 +29,15 @@ jsonschema==2.6.0
 kombu==4.6.5
 MarkupSafe==1.1.1
 more-itertools==7.2.0
-numpy==1.17.2
+numpy
 openapi-spec-validator==0.2.8
-pandas==0.25.1
-psycopg2-binary==2.8.3
+pandas
 python-crontab==2.3.9
 python-dateutil==2.8.0
 pytz==2019.3
 PyYAML==5.1.2
 requests==2.22.0
 rest-pandas==1.1.0
-scipy
 six==1.12.0
 specific==0.0.1
 sqlparse==0.3.0
@@ -50,4 +47,6 @@ to==0.3
 urllib3==1.25.6
 vine==1.3.0
 Werkzeug==0.16.0
-zipp==0.6.0
+psycopg2>=2.8.6,<2.9
+scipy
+xlsxwriter
