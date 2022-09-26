@@ -623,6 +623,8 @@ def thompson_sampling_contextual(variables, context):
 					new_possible.append(new_a)
 					all_possible_actions = new_possible
 
+	filtered = filter(lambda x: sum(list(x.values())) <= 1, all_possible_actions)
+	all_possible_actions = list(filtered)
 	# Print entire action set
 	print('all possible actions: ' + str(all_possible_actions))
 
