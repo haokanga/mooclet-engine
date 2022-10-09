@@ -1457,3 +1457,198 @@ def ts_sample(versions_dict, context):
 	version_dict["selection_method"] = "ts_nonpostdiff"
 	#version_to_show = Version.objects.get(id=version_to_show)
 	return version_to_show
+
+
+def ts_configurable_with_r(variables, context):
+	import rpy2.robjects as R
+
+	versions = context['mooclet'].version_set.all()
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+	Version = apps.get_model('engine', 'Version')
+	PolicyParametersHistory = apps.get_model('engine', 'PolicyParametersHistory')
+	PolicyParameter = apps.get_model('engine', 'PolicyParameters')
+	policy_parameters = context["policy_parameters"].parameters
+	prior_success = policy_parameters['prior']['success']
+	prior_failure = policy_parameters['prior']['failure']
+	outcome_variable_name = policy_parameters['outcome_variable_name']
+	min_rating, max_rating = policy_parameters["min_rating"] if "min_rating" in policy_parameters else 0, policy_parameters['max_rating']
+
+	# Batch
+	if "batch_size" in policy_parameters:
+		batch_size = policy_parameters["batch_size"]
+	else:
+		batch_size = 1
+
+	if "uniform_threshold" in policy_parameters:
+		uniform_threshold = policy_parameters["uniform_threshold"]
+	else:
+		uniform_threshold = 0
+
+	current_enrolled = Value.objects.filter(
+		variable__name="version", 
+		mooclet=context["mooclet"], 
+		policy__name="ts_configurable_with_r"
+	)
+	
+	if uniform_threshold > 0 and current_enrolled.count() <= policy_parameters["uniform_threshold"]:
+		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0,
+							text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random_coldstart"
+		return version_dict
+
+	policy = PolicyParameter.objects.get(mooclet=context["mooclet"], policy__name='ts_configurable_with_r')
+	if policy.latest_update:
+		new_enrolled = current_enrolled.filter(timestamp__gte=policy.latest_update)
+	else:
+		new_enrolled = current_enrolled
+
+	if "current_posteriors" not in policy_parameters or new_enrolled.count() >= batch_size:
+		#update policyparameters
+		current_posteriors = {}
+		for version in versions:
+			if "used_choose_group" in context and context["used_choose_group"] == True:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet'], 'policy': 'ts_configurable_with_r'})
+			else:
+				student_ratings = Variable.objects.get(name=outcome_variable_name).get_data(context={'version': version, 'mooclet': context['mooclet']})
+			if student_ratings:
+				student_ratings = student_ratings.all()
+				rating_count = student_ratings.count()
+				sum_rewards = student_ratings.aggregate(Sum('value'))
+				sum_rewards = sum_rewards['value__sum']
+			else:
+				rating_count = 0
+				sum_rewards = 0
+    
+			update_para = R.r(
+				r'''
+				function(para){
+					success <- para[1]
+					failure <- para[2]
+					total_num_reward <- para[3]
+					sum_reward <- para[4]
+
+					success <- success + sum_reward
+					failure <- failure + (total_num_reward - sum_reward)
+					return(para=c(success, failure))
+				}
+				'''
+			)
+   
+			as_numeric = R.r['as.numeric']
+			para_vec = R.FloatVector((0, 0, rating_count, sum_rewards))
+			para = update_para(para_vec)
+			para = as_numeric(para)
+
+			successes, failures = tuple(para)
+			current_posteriors[version.id] = {"successes":successes, "failures": failures}
+
+		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
+		new_history.save()
+
+		context["policy_parameters"].parameters["current_posteriors"] = current_posteriors
+		new_update_time = datetime.datetime.now()
+		context["policy_parameters"].latest_update = new_update_time
+		context["policy_parameters"].save()
+	else:
+		current_posteriors = policy_parameters["current_posteriors"]
+
+	version_dict = {}
+	for version in current_posteriors:
+		version_dict[Version.objects.get(id=version)] = {
+      		"successes": current_posteriors[version]["successes"] + prior_success, 
+        	"failures":  current_posteriors[version]["failures"] + prior_failure
+        }
+
+	print(version_dict)
+	if "tspostdiff_thresh" in policy_parameters:
+		print("ts_postdiff")
+		return ts_postdiff_sample_with_r(policy_parameters["tspostdiff_thresh"], version_dict, context)
+	else:
+		return ts_sample(version_dict, context)
+
+
+def ts_postdiff_sample_with_r(tspostdiff_thresh, versions_dict, context):
+	"""
+	Inputs are a threshold and a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}
+	"""
+	import rpy2.robjects as R
+
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+
+	version_success_failure = list(versions_dict.items())
+	arm1_success_failure, arm2_success_failure = version_success_failure[0], version_success_failure[1]
+	success_arm1, failure_arm1 = arm1_success_failure[1]["successes"], arm1_success_failure[1]["failures"]
+	success_arm2, failure_arm2 = arm2_success_failure[1]["successes"], arm2_success_failure[1]["failures"]
+
+	ts_postdiff = R.r(
+		r'''
+		function(para){
+			sa <- para[1]
+			fa <- para[2]
+			sb <- para[3]
+			fb <- para[4]
+			c <- para[5]
+			draw_a <- rbeta(1, sa, fa)
+			draw_b <- rbeta(1, sb, fb)
+
+			is_ur <- 0
+			if (abs(draw_a - draw_b) < c){
+				draw_a <- runif(1)
+				draw_b <- runif(1)
+				is_ur <- 1
+			} else {
+				draw_a <- rbeta(1, sa, fa)
+				draw_b <- rbeta(1, sb, fb)
+			}
+
+			arm <- 1
+			if(draw_a < draw_b){
+				arm <- 2
+			}
+			return(c(arm, is_ur))
+		}
+		'''
+    )
+
+	as_numeric = R.r['as.numeric']
+	para = R.FloatVector((success_arm1, failure_arm1, success_arm2, failure_arm2, tspostdiff_thresh))
+	assignment = ts_postdiff(para)
+	assignment = as_numeric(assignment)
+	arm, is_ur = tuple(assignment)
+
+	if arm == 1:
+		# Arm 1 chosen
+		version_to_show = arm1_success_failure[0]
+	else:
+		# Arm 2 chosen
+		version_to_show = arm2_success_failure[0]
+
+	#log whether was chosen by ts or ur
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+	if is_ur == 1:
+		Value.objects.create(
+      		variable=ur_or_ts, value=0.0, text="UR", 
+            learner=context["learner"], mooclet=context["mooclet"],
+			version=version_to_show
+   		)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random"
+		return version_dict
+	else:
+		#log policy chosen
+		Value.objects.create(
+      		variable=ur_or_ts, value=1.0, text="TS", 
+            learner=context["learner"], mooclet=context["mooclet"],
+			version=version_to_show
+		)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "thompson_sampling_postdiff"
+		return version_dict
