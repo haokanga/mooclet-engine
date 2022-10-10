@@ -1565,11 +1565,152 @@ def ts_configurable_with_r(variables, context):
         }
 
 	print(version_dict)
-	if "tspostdiff_thresh" in policy_parameters:
+	if "toptwots_thresh" in policy_parameters:
+		print("toptwo_ts")
+		return toptwo_ts_sample_with_r(policy_parameters["toptwots_thresh"], version_dict, context)
+	elif "tsprobclip_thresh" in policy_parameters:
+		print("ts_probclip")
+		return ts_probclip_sample_with_r(policy_parameters["tsprobclip_thresh"], version_dict, context)
+	elif "tspostdiff_thresh" in policy_parameters:
 		print("ts_postdiff")
 		return ts_postdiff_sample_with_r(policy_parameters["tspostdiff_thresh"], version_dict, context)
 	else:
-		return ts_sample(version_dict, context)
+		return ts_sample_with_r(version_dict, context)
+
+
+def toptwo_ts_sample_with_r(toptwots_thresh, versions_dict, context):
+	"""
+	Inputs are a threshold and a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}
+	"""
+	import rpy2.robjects as R
+
+	Variable = apps.get_model('engine', 'Variable')
+	Value = apps.get_model('engine', 'Value')
+
+	version_success_failure = list(versions_dict.items())
+	arm1_success_failure, arm2_success_failure = version_success_failure[0], version_success_failure[1]
+	success_arm1, failure_arm1 = arm1_success_failure[1]["successes"], arm1_success_failure[1]["failures"]
+	success_arm2, failure_arm2 = arm2_success_failure[1]["successes"], arm2_success_failure[1]["failures"]
+
+	toptwo_ts = R.r(
+		r'''
+		function(para){
+			sa <- para[1]
+			fa <- para[2]
+			sb <- para[3]
+			fb <- para[4]
+			algorithm_para <- para[5]
+			draw_a <- rbeta(1, sa, fa)
+			draw_b <- rbeta(1, sb, fb)
+			
+			is_ur <- 0
+			if (runif(1) < algorithm_para){
+				draw_a <- runif(1)
+				draw_b <- runif(1)
+				is_ur <- 1
+			} 
+			arm <- 1
+			if(draw_a < draw_b){
+				arm <- 2
+			}
+			return(c(arm, is_ur))
+		}
+		'''
+    )
+
+	as_numeric = R.r['as.numeric']
+	para = R.FloatVector((success_arm1, failure_arm1, success_arm2, failure_arm2, toptwots_thresh))
+	assignment = toptwo_ts(para)
+	assignment = as_numeric(assignment)
+	arm, is_ur = tuple(assignment)
+
+	if arm == 1:
+		# Arm 1 chosen
+		version_to_show = arm1_success_failure[0]
+	else:
+		# Arm 2 chosen
+		version_to_show = arm2_success_failure[0]
+
+	#log whether was chosen by ts or ur
+	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+	if is_ur == 1:
+		Value.objects.create(
+      		variable=ur_or_ts, value=0.0, text="UR", 
+            learner=context["learner"], mooclet=context["mooclet"],
+			version=version_to_show
+   		)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random"
+		return version_dict
+	else:
+		#log policy chosen
+		Value.objects.create(
+      		variable=ur_or_ts, value=1.0, text="TS", 
+            learner=context["learner"], mooclet=context["mooclet"],
+			version=version_to_show
+		)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "toptwo_thompson_sampling"
+		return version_dict
+
+
+def ts_probclip_sample_with_r(tsprobclip_thresh, versions_dict, context):
+	"""
+	Inputs are a threshold and a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}
+	"""
+	import rpy2.robjects as R
+
+	version_success_failure = list(versions_dict.items())
+	arm1_success_failure, arm2_success_failure = version_success_failure[0], version_success_failure[1]
+	success_arm1, failure_arm1 = arm1_success_failure[1]["successes"], arm1_success_failure[1]["failures"]
+	success_arm2, failure_arm2 = arm2_success_failure[1]["successes"], arm2_success_failure[1]["failures"]
+
+	ts_probclip = R.r(
+		r'''
+		function(para){
+			sa <- para[1]
+			fa <- para[2]
+			sb <- para[3]
+			fb <- para[4]
+			algorithm_para <- para[5]
+			draw_a <- rbeta(1, sa, fa)
+			draw_b <- rbeta(1, sb, fb)
+		
+			a <- rbeta(1000, sa, fa)
+			b <- rbeta(1000, sb, fb)
+			pab <- mean(a > b)
+			
+			draw_a <- median(c(algorithm_para, 1 - algorithm_para, pab))
+			
+			arm <- 1
+			if(draw_a < draw_b) {
+				arm <- 2
+			}
+			return(arm)
+		}
+		'''
+    )
+
+	as_numeric = R.r['as.numeric']
+	para = R.FloatVector((success_arm1, failure_arm1, success_arm2, failure_arm2, tsprobclip_thresh))
+	assignment = ts_probclip(para)
+	assignment = as_numeric(assignment)
+	arm = assignment[0]
+
+	if arm == 1:
+		# Arm 1 chosen
+		version_to_show = arm1_success_failure[0]
+	else:
+		# Arm 2 chosen
+		version_to_show = arm2_success_failure[0]
+
+	version_dict = model_to_dict(version_to_show)
+	version_dict["selection_method"] = "thompson_sampling_probclip"
+	return version_dict
 
 
 def ts_postdiff_sample_with_r(tspostdiff_thresh, versions_dict, context):
@@ -1652,3 +1793,53 @@ def ts_postdiff_sample_with_r(tspostdiff_thresh, versions_dict, context):
 		version_dict = model_to_dict(version_to_show)
 		version_dict["selection_method"] = "thompson_sampling_postdiff"
 		return version_dict
+
+
+def ts_sample_with_r(versions_dict, context):
+	"""
+	Inputs are a threshold and a dict of versions to successes and failures e.g.:
+	{version1: {successess: 1, failures: 1}.
+	version2: {successess: 1, failures: 1}, ...}
+	"""
+	import rpy2.robjects as R
+
+	version_success_failure = list(versions_dict.items())
+	arm1_success_failure, arm2_success_failure = version_success_failure[0], version_success_failure[1]
+	success_arm1, failure_arm1 = arm1_success_failure[1]["successes"], arm1_success_failure[1]["failures"]
+	success_arm2, failure_arm2 = arm2_success_failure[1]["successes"], arm2_success_failure[1]["failures"]
+
+	ts = R.r(
+		r'''
+		function(para){
+			sa <- para[1]
+			fa <- para[2]
+			sb <- para[3]
+			fb <- para[4]
+			draw_a <- rbeta(1, sa, fa)
+			draw_b <- rbeta(1, sb, fb)
+			
+			arm <- 1
+			if(draw_a < draw_b) {
+				arm <- 2
+			}
+			return(arm)
+		}
+		'''
+    )
+
+	as_numeric = R.r['as.numeric']
+	para = R.FloatVector((success_arm1, failure_arm1, success_arm2, failure_arm2))
+	assignment = ts(para)
+	assignment = as_numeric(assignment)
+	arm = assignment[0]
+
+	if arm == 1:
+		# Arm 1 chosen
+		version_to_show = arm1_success_failure[0]
+	else:
+		# Arm 2 chosen
+		version_to_show = arm2_success_failure[0]
+
+	version_dict = model_to_dict(version_to_show)
+	version_dict["selection_method"] = "thompson_sampling"
+	return version_dict
