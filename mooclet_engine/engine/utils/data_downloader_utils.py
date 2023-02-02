@@ -143,11 +143,15 @@ def map_version_to_reward(
 
     version_df = value_df[value_df.name == "version"]
     reward_df = value_df[value_df.name.isin(reward_names)]
+
     context_df = context_value_df[context_value_df.name.isin(variable_names) & ~context_value_df.name.isin(reward_names)]
+    context_df = context_df[context_df["name"] != "version"]
 
     version_df.reset_index(inplace=True)
     reward_df.reset_index(inplace=True)
     context_df.reset_index(inplace=True)
+    
+    # print(f"{'-' * 12} START {'-' * 12}")
 
     # print("version_df: ")
     # print(version_df)
@@ -182,7 +186,16 @@ def map_version_to_reward(
         # Access next version row
         same_mooclet_next = version_df["study"] == datapoint_dict["study"]
         same_learner_next = version_df["learner"] == datapoint_dict["learner"]
-        next_version_df = version_df[same_mooclet_next & same_learner_next].iloc[version_index + 1:].head(1)
+        next_version_df = version_df.iloc[version_index:].loc[same_mooclet_next & same_learner_next].shift(-1).dropna().head(1)
+        
+        # print(f"version_index: {version_index}")
+        # print(version_df[same_mooclet_next & same_learner_next])
+        # print(version_df.iloc[version_index:].loc[same_mooclet_next & same_learner_next])
+        print("next_version_df:")
+        print(next_version_df)
+        # print("shifted:")
+        # new_version_df = version_df
+        # print(new_version_df.iloc[version_index:].loc[same_mooclet_next & same_learner_next].shift(-1).dropna().head(1))
         
         if len(next_version_df.index) != 0:
             next_version_row = next_version_df.iloc[0]
@@ -197,7 +210,12 @@ def map_version_to_reward(
         mapped_rewards = reward_df[time_range & same_mooclet & same_learner & same_policy & same_version]
         reward_df = reward_df.drop(mapped_rewards.index)
         
+
         # print("version {} has mapped_rewards:".format(version_row["arm"]))
+        # print(f"{'=' * 12} MAPPED {'=' * 12}")
+        # print("version:")
+        # print(version_row)
+        # print("has mapped rewards:")
         # print(mapped_rewards)
         
         if len(mapped_rewards.index) == 0:
