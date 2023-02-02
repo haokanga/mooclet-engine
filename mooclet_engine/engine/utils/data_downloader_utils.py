@@ -25,6 +25,7 @@ def set_if_not_none_non_json(mapping, key, value):
 # But only the first (i.e. oldest) reward are considered valid to the assigned version.
 def map_version_to_reward(
     values, 
+    context_values,
     mooclet, 
     policy,  
     rewards, 
@@ -130,13 +131,19 @@ def map_version_to_reward(
     ).rename(
         columns=rename_columns
     )
+    
+    context_value_df = pd.DataFrame.from_records(
+        context_values.values(*value_fields)
+    ).rename(
+        columns=rename_columns
+    )
 
     # print("value_df: ")
     # print(value_df)
 
     version_df = value_df[value_df.name == "version"]
     reward_df = value_df[value_df.name.isin(reward_names)]
-    context_df = value_df[value_df.name.isin(variable_names) & ~value_df.name.isin(reward_names)]
+    context_df = context_value_df[context_value_df.name.isin(variable_names) & ~context_value_df.name.isin(reward_names)]
 
     version_df.reset_index(inplace=True)
     reward_df.reset_index(inplace=True)
@@ -190,8 +197,8 @@ def map_version_to_reward(
         mapped_rewards = reward_df[time_range & same_mooclet & same_learner & same_policy & same_version]
         reward_df = reward_df.drop(mapped_rewards.index)
         
-        print("version {} has mapped_rewards:".format(version_row["arm"]))
-        print(mapped_rewards)
+        # print("version {} has mapped_rewards:".format(version_row["arm"]))
+        # print(mapped_rewards)
         
         if len(mapped_rewards.index) == 0:
             # There is no arm-reward matched. The missing data should be appended to the dataframe.

@@ -560,6 +560,10 @@ class ExportExcelValues(APIView):
                     single_param_histories = select_param_histories.filter(policy=policy)
                     single_parameters = select_parameters.filter(policy=policy).first()
                     policy_values = select_values.filter(Q(policy__isnull=True) | Q(policy=policy))
+                    
+                    for reward_variable in reward_variables:
+                        context_values = policy_values.filter(~Q(variable=reward_variable))
+                    context_values = policy_values.filter(~Q(variable=Variable.objects.get(name="version")))
 
                     prev_checkpoint = None
                     update_count = 0
@@ -581,6 +585,7 @@ class ExportExcelValues(APIView):
 
                         data, columns = map_version_to_reward(
                             batch_values, 
+                            context_values,
                             mooclet, 
                             policy, 
                             reward_variables,
@@ -599,10 +604,13 @@ class ExportExcelValues(APIView):
                         batch_values = policy_values.filter(Q(timestamp__gte=prev_checkpoint))
                     else:
                         batch_values = policy_values
+                    
+                    
 
                     if batch_values.exists():
                         data, columns = map_version_to_reward(
                             batch_values, 
+                            context_values,
                             mooclet, 
                             policy, 
                             reward_variables,
