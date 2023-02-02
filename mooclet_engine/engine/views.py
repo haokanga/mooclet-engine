@@ -563,7 +563,7 @@ class ExportExcelValues(APIView):
                     
                     for reward_variable in reward_variables:
                         context_values = policy_values.filter(~Q(variable=reward_variable))
-                    context_values = policy_values.filter(~Q(variable=Variable.objects.get(name="version")))
+                    context_values = context_values.filter(~Q(variable=Variable.objects.get(name="version")))
 
                     prev_checkpoint = None
                     update_count = 0
