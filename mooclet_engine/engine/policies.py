@@ -161,6 +161,108 @@ def choose_mooclet_group(variables, context):
 				version_dict = version
 			return version_dict
 
+def choose_user_level_group(variables, context):
+    Variable = apps.get_model('engine', 'Variable')
+    Value = apps.get_model('engine', 'Value')
+    Version = apps.get_model('engine', 'Version')
+    Policy = apps.get_model('engine', 'Policy')
+    PolicyParams = apps.get_model('engine', 'PolicyParameters')
+    Mooclet = apps.get_model('engine', 'Mooclet')
+    
+    var_name = str(context["mooclet"])+"_choose_user_level_group"
+    grp_var, created = Variable.objects.get_or_create(name=var_name)
+    
+    if "learner" not in context:
+        return {"error": "please provide a learner ID"}
+    
+    mooclet_values = Value.objects.filter(learner=context["learner"]).filter(~Q(variable=grp_var))
+    mooclet_arms = Version.objects.filter(mooclet=context['mooclet'])
+    policy_parameters = context["policy_parameters"].parameters         
+    policies = list(policy_parameters["policies"])
+    reward_name = policy_parameters["reward"]
+    context_names = list(policy_parameters["contexts"])
+
+    if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
+        print("found prior mooclet")
+        user_grp = Value.objects.filter(variable=grp_var, learner=context["learner"]).first()
+        user_group = user_grp.text
+        print("prior mooclet: " + user_group)
+        user_mooclet = Mooclet.objects.get(name=user_group)
+    else:
+        print("initialize new mooclet")
+
+        # copy user values to new mooclet
+        new_mooclet_name = context["mooclet"].name + "_" + context["learner"].name
+        user_mooclet = Mooclet.objects.create(name=new_mooclet_name)
+        print("new mooclet: {}".format(user_mooclet.name))
+
+        # create new arms
+        # Note: assume sub-mooclets share the same arm name as the current mooclet
+        new_user_arms = mooclet_arms.all()
+        for arm in new_user_arms:
+            arm.pk = None
+            arm.mooclet = user_mooclet
+            arm.save()
+        print("new user arms: {}".format([arm for arm in new_user_arms]))
+
+        # create new policies
+        for index, policy_param in enumerate(policies):
+            policy = Policy.objects.get(name=policy_param.get('name'))
+            parameters = policy_param.get('parameters')
+            
+            if policy.name in ['ts_configurable', 'ts_configurable_with_r']:
+                posteriors_data = parameters.get('current_posteriors', None)
+                if posteriors_data:
+                    arm_keys = list(posteriors_data.keys())
+                    for arm_key in arm_keys:
+                        arm_value = posteriors_data[arm_key]
+                        mooclet_arm = Version.objects.get(pk=int(arm_key))
+                        if mooclet_arm:
+                            new_user_arm = Version.objects.get(name=mooclet_arm.name)
+                            posteriors_data[new_user_arm] = arm_value
+                        del posteriors_data[arm_key]
+
+            PolicyParams.objects.create(
+                mooclet=user_mooclet,
+                policy=policy, 
+                parameters=policy_param.get('parameters'),
+                latest_update=datetime.datetime.now()
+            )
+            
+            print("policy created: {}".format(policy.name))
+            
+            # link the first policy to new mooclet
+            if index == 0:
+                user_mooclet.policy = policy
+                user_mooclet.save()
+        
+        # Create history record to link current mooclet and sub-mooclet
+        Value.objects.create(variable=grp_var, learner=context["learner"], text=new_mooclet_name)
+    
+    # update mooclet id to all current values
+    mooclet_values.update(mooclet=user_mooclet)
+    print("policy value updated: {}".format(mooclet_values))
+    
+    # Note: assume sub-mooclets share the same arm name as the current mooclet
+    for arm in mooclet_arms:
+        version_values = mooclet_values.filter(variable__name='version', version=arm)
+        reward_values = mooclet_values.filter(variable__name=reward_name, version=arm)
+        user_arm = Version.objects.get(mooclet=user_mooclet, name=arm.name)
+
+        # update arm id to all version values
+        version_values.update(version=user_arm)
+
+        # update arm id to all reward values
+        reward_values.update(version=user_arm)
+        
+        print("arm updated: {}".format(arm.pk))
+    
+    version = user_mooclet.run(context={"learner":context["learner"]})
+    if type(version) != dict:
+        version_dict = model_to_dict(version)
+    else:
+        version_dict = version
+    return version_dict
 
 def weighted_random(variables,context):
     all_versions = context['mooclet'].version_set.all()
