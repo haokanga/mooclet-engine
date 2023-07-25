@@ -764,9 +764,9 @@ def thompson_sampling_contextual(variables, context):
 		if best_action is None or outcome > best_outcome:
 			best_outcome = outcome
 			best_action = action
-
 	# Print optimal action
 	print('best action: ' + str(best_action))
+
 	version_to_show = Version.objects.filter(mooclet=context['mooclet'])
 
 	version_to_show = version_to_show.get(version_json__contains=best_action)
@@ -922,8 +922,8 @@ def calculate_outcome(var_dict, coef_list, include_intercept, formula):
 		vars_list.insert(0,1.)
 
 	# Raise assertion error if variable list different length then coeff list
-	#print(vars_list)
-	#print(coef_list)
+	print(vars_list)
+	print(coef_list)
 	assert(len(vars_list) == len(coef_list))
 
 	# Initialize outcome
@@ -1416,6 +1416,8 @@ def ts_configurable(variables, context):
 	#max value of version rating, from qualtrics
 	min_rating, max_rating = policy_parameters["min_rating"] if "min_rating" in policy_parameters else 0, policy_parameters['max_rating']
 
+	epsilon = policy_parameters['epsilon'] if 'epsilon' in policy_parameters else 0
+
 	if "batch_size" in policy_parameters:
 		batch_size = policy_parameters["batch_size"]
 	if "uniform_threshold" in policy_parameters:
@@ -1428,6 +1430,17 @@ def ts_configurable(variables, context):
 		version_to_show = choice(context['mooclet'].version_set.all())
 		Value.objects.create(variable=ur_or_ts, value=0.0,
 							text="UR_COLDSTART", learner=context["learner"], mooclet=context["mooclet"],
+							version=version_to_show)
+		version_dict = model_to_dict(version_to_show)
+		version_dict["selection_method"] = "uniform_random_coldstart"
+		return version_dict
+
+	#number of current participants within uniform random threshold, random sample
+	if np.random.uniform() < epsilon:
+		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
+		version_to_show = choice(context['mooclet'].version_set.all())
+		Value.objects.create(variable=ur_or_ts, value=0.0,
+							text="EPSILON", learner=context["learner"], mooclet=context["mooclet"],
 							version=version_to_show)
 		version_dict = model_to_dict(version_to_show)
 		version_dict["selection_method"] = "uniform_random_coldstart"
