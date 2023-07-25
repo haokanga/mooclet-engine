@@ -106,7 +106,7 @@ def choose_policy_group(variables, context):
 
 		if not allowed_versions.filter(pk=version_id).exists() and count == context.get("maximum_allowed", 20):
 			print("RANDOM CHOOSE")
-			version = choice(context['mooclet'].version_set.all())
+			version = choice(allowed_versions)
 
 	if type(version) != dict:
 		version_dict = model_to_dict(version)
