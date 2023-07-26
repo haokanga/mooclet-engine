@@ -310,8 +310,17 @@ class ContextualImputer(APIView):
             val_min = variable.min_value
             val_max = variable.max_value
             sample_thres = variable.sample_thres
-            values = Value.objects.filter(variable__name=context_var, mooclet=mooclet)
+            values = Value.objects.filter(variable__name=context_var, mooclet=mooclet).exclude(text="Init Context")
+
+            # values_1 = Value.objects.filter(variable__name=context_var, mooclet=mooclet)
+            # values_2= Value.objects.filter(variable__name=context_var, mooclet=mooclet).exclude(text="Init Context")
+
+
+            # print(f'value_1 count: {values_1.count()}, value_2 count: {values_2.count()}')
+
             num_values = values.count()
+
+            
 
             if num_values == 0 or num_values < sample_thres:
                 if val_type != Variable.CONTINUOUS:

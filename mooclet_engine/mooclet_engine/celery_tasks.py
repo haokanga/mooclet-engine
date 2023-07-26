@@ -7,7 +7,7 @@ from celery import Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mooclet_engine.settings.local')
 
 app = Celery('proj')
-
+app.conf.task_time_limit = 14400
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 # - namespace='CELERY' means all celery-related configuration keys
@@ -21,7 +21,7 @@ app.autodiscover_tasks()
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     # Calls test('hello') every 10 seconds.
-    sender.add_periodic_task(300.0, get_qualtrics_data.s('self', {"qualtrics_survey": 1}), name='add every 10')
+    sender.add_periodic_task(29.0, get_qualtrics_data.s('self', {"qualtrics_survey": 1}), name='add every 10')
 
 
 

@@ -215,7 +215,7 @@ def hash_and_save(email, hashed=None):
 	return user_hash
 
 
-@shared_task
+@shared_task(time_limit=14400, soft_time_limit=14400)
 def update_model(self, **kwargs):
 	print("starting")
 	mooclet = Mooclet.objects.get(pk=kwargs["mooclet"])
