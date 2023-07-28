@@ -223,7 +223,8 @@ CELERY_RESULT_BACKEND = 'django-db'
 
 
 CELERY_IMPORTS = ['engine', 'data_exchange.tasks']
-
+CELERY_TASK_TIME_LIMIT = 8
+#ilya added tat 2023-05-30
 
 #### custom application settings ####
 
