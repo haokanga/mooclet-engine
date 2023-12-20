@@ -95,7 +95,7 @@ class MoocletViewSet(viewsets.ModelViewSet):
         arms = req.get("arms", None)
         if arms is not None:
             try:
-                allowed_versions = Version.objects.filter(name__in=arms)
+                allowed_versions = Version.objects.filter(name__in=arms, mooclet=self.get_object())
             except:
                 return Response({"error": "invalid arm set"}, status=400)
             context['allowed_versions'] = allowed_versions
