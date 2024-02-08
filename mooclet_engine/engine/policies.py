@@ -1392,7 +1392,14 @@ def ts_configurable(variables, context):
 	Value = apps.get_model('engine', 'Value')
 	Version = apps.get_model('engine', 'Version')
 	PolicyParametersHistory = apps.get_model('engine', 'PolicyParametersHistory')
-	# version_content_type = ContentType.objects.get_for_model(Version)
+	# version_instance = Version.objects.first()
+ 
+	# Check if the instance exists and has a non-null version_json
+	# if version_instance and version_instance.version_json is not None:
+	# 	print("version:", version_instance.version_json)
+	# else:
+	# 	print("No version_json found or no Version instance available.")
+	# # version_content_type = ContentType.objects.get_for_model(Version)
 	#priors we set by hand - will use instructor rating and confidence in future
 	# TODO : all explanations are having the same prior.
 
@@ -1409,9 +1416,22 @@ def ts_configurable(variables, context):
 	#   }
 	policy_parameters = context["policy_parameters"].parameters
 
-	prior_success = policy_parameters['prior']['success']
+	prior = policy_parameters.get('prior', {})
+	# overwrite the arm if no prior found
+	for key, value in prior.items():
+		if not (isinstance(value, dict) or "failure" in value or "success" in value):
+			prior[key] = {"failure": 1.0, "success": 1.0}
+	
+	default_prior = {"failure": 1.0, "success": 1.0}
+	version_priors = {version_id: prior.get(str(version_id), default_prior) for version_id in [v.id for v in versions]}
+ 
+	# print("versionprior: ", version_priors)
+ 
+	if not prior:
+		for key, value in version_priors.items():
+			# Update prior with the values from version_priors
+			prior[key] = value
 
-	prior_failure = policy_parameters['prior']['failure']
 	outcome_variable_name = policy_parameters['outcome_variable_name']
 	#max value of version rating, from qualtrics
 	min_rating, max_rating = policy_parameters["min_rating"] if "min_rating" in policy_parameters else 0, policy_parameters['max_rating']
@@ -1458,8 +1478,10 @@ def ts_configurable(variables, context):
 				student_ratings = student_ratings.all()
 				# student_ratings is a pandas.core.series.Series variable
 				rating_count = student_ratings.count()
+				# print("student ratings:", student_ratings)
 				# rating_average = student_ratings.aggregate(Avg('value'))
 				sum_rewards = student_ratings.aggregate(Sum('value'))
+				# print("sum_rewards:", sum_rewards)
 				sum_rewards = sum_rewards['value__sum']
 				# rating_average = rating_average['value__avg']
 				# if rating_average is None:
@@ -1469,14 +1491,20 @@ def ts_configurable(variables, context):
 				rating_count = 0
 				sum_rewards = 0
 
-
-			success_update = (sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
+			# print("current post:", current_posteriors)
+			success_update = float(sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
 			successes = success_update
-			failures = rating_count - success_update
+			failures = float(rating_count) - success_update
+			version_prior = prior.get(str(version.id))
+			# print("success", successes)
+			
+			if version_prior:
+				# print("prior:", version_prior)
+				successes += version_prior.get("success", 0)
+				failures += version_prior.get("failure", 0)
+			current_posteriors[version.id] = {"successes": successes, "failures": failures}
 
-			current_posteriors[version.id] = {"successes":successes, "failures": failures}
-
-
+		# print("post:", current_posteriors)
 		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
 
 		new_history.save()
@@ -1484,16 +1512,29 @@ def ts_configurable(variables, context):
 		new_update_time = datetime.datetime.now()
 		context["policy_parameters"].latest_update = new_update_time
 		context["policy_parameters"].save()
+  
 	else:
+		# print("here!")
 		current_posteriors = policy_parameters["current_posteriors"]
 
 	version_dict = {}
-	for version in current_posteriors:
-		current_posteriors[version]["successes"]
-		version_dict[Version.objects.get(id=version)] = {"successes":
-														current_posteriors[version]["successes"] + prior_success,
-														"failures":  current_posteriors[version]["failures"] + prior_failure}
-	print(version_dict)
+	for version_id, posteriors in current_posteriors.items():
+		# Get the prior for the current version
+		version_prior = version_priors[version_id]
+		
+		# Update the successes and failures by adding the respective priors
+		updated_successes = posteriors["successes"] + version_prior["success"]
+		updated_failures = posteriors["failures"] + version_prior["failure"]
+		
+		# Get the version object from the database
+		version_obj = Version.objects.get(id=version_id)
+		
+		# Update the version_dict with the new values
+		version_dict[version_obj] = {
+			"successes": updated_successes,
+			"failures": updated_failures
+		}
+   
 	if "tspostdiff_thresh" in policy_parameters:
 		print("ts_postdiff")
 		return ts_postdiff_sample(policy_parameters["tspostdiff_thresh"], version_dict, context)
