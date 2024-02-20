@@ -1418,9 +1418,9 @@ def ts_configurable(variables, context):
 
 	prior = policy_parameters.get('prior', {})
 	# overwrite the arm if no prior found
-	for key, value in prior.items():
-		if not (isinstance(value, dict) or "failure" in value or "success" in value):
-			prior[key] = {"failure": 1.0, "success": 1.0}
+	# for key, value in prior.items():
+	# 	if not (isinstance(value, dict) and "failure" in value and "success" in value):
+	# 		prior[key] = {"failure": 1.0, "success": 1.0}
 	
 	default_prior = {"failure": 1.0, "success": 1.0}
 	version_priors = {version_id: prior.get(str(version_id), default_prior) for version_id in [v.id for v in versions]}
