@@ -685,11 +685,16 @@ def thompson_sampling_contextual(variables, context):
 	if 'learner' not in context:
 		pass
 	print('learner' + str(context['learner']))
-	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
-	contextual_vars_dict = {}
-	for val in contextual_vars:
-		contextual_vars_dict[val.variable.name] = val.value
-		contextual_vars = contextual_vars_dict
+
+	contextual_value_map = {}
+	for var in contextual_vars:
+		contextual_value = Value.objects.filter(variables__name=var, learner=context["learner"]).order_by("-timestamp").first()
+
+		if not contextual_value:
+			raise Exception(f'Contextual variable value does not exist, contextual variable name: {var}')
+		else:
+			contextual_value_map[var] = contextual_value
+
 	print('contextual vars: ' + str(contextual_vars))
 	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"],
 											policy__name="thompson_sampling_contextual").count()
@@ -754,7 +759,7 @@ def thompson_sampling_contextual(variables, context):
 	# Itterate of all feasible actions
 	for action in all_possible_actions:
 		independent_vars = action.copy()
-		independent_vars.update(contextual_vars)
+		independent_vars.update(contextual_value_map)
 		print('independent vars: ' + str(independent_vars))
 		# Compute expected reward given action
 		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
