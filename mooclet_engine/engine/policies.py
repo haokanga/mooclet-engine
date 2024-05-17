@@ -764,7 +764,7 @@ def thompson_sampling_contextual(variables, context):
 		independent_vars.update(contextual_vars_dict)
 		print('independent vars: ' + str(independent_vars))
 		# Compute expected reward given action
-		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
+		outcome = calculate_outcome(independent_vars, coef_draw, include_intercept, regression_formula)
 		print("curr_outcome" + str(outcome))
 		print('outcome: ' + str(best_outcome))
 		# Keep track of optimal (action, outcome)
