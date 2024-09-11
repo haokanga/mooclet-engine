@@ -24,6 +24,7 @@ DATABASES = {
     'default': secure.LOCAL_DATABASE['dev'],
 }
 
+
 # For Django Debug Toolbar:
 INTERNAL_IPS = ('127.0.0.1', '10.0.2.2',)
 
@@ -40,4 +41,4 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
 
 #CELERY
-#CELERY_BROKER_URL = secure.LOCAL_CELERY_BROKER_URL
+CELERY_BROKER_URL = secure.LOCAL_CELERY_BROKER_URL

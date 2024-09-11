@@ -74,7 +74,7 @@ def choose_policy_group(variables, context):
 			version_id = version.id
 		else:
 			version_id = version["id"]
-  
+
 		while (not allowed_versions.filter(pk=version_id).exists()) and count < context.get("maximum_allowed", 20):
 			count += 1
 			if Value.objects.filter(variable=grp_var, learner=context["learner"]).exists():
@@ -168,16 +168,16 @@ def choose_user_level_group(variables, context):
     Policy = apps.get_model('engine', 'Policy')
     PolicyParams = apps.get_model('engine', 'PolicyParameters')
     Mooclet = apps.get_model('engine', 'Mooclet')
-    
+
     var_name = str(context["mooclet"])+"_choose_user_level_group"
     grp_var, created = Variable.objects.get_or_create(name=var_name)
-    
+
     if "learner" not in context:
         return {"error": "please provide a learner ID"}
-    
+
     mooclet_values = Value.objects.filter(learner=context["learner"]).filter(~Q(variable=grp_var))
     mooclet_arms = Version.objects.filter(mooclet=context['mooclet'])
-    policy_parameters = context["policy_parameters"].parameters         
+    policy_parameters = context["policy_parameters"].parameters
     policies = list(policy_parameters["policies"])
     reward_name = policy_parameters["reward"]
     context_names = list(policy_parameters["contexts"])
@@ -209,7 +209,7 @@ def choose_user_level_group(variables, context):
         for index, policy_param in enumerate(policies):
             policy = Policy.objects.get(name=policy_param.get('name'))
             parameters = policy_param.get('parameters')
-            
+
             if policy.name in ['ts_configurable', 'ts_configurable_with_r']:
                 posteriors_data = parameters.get('current_posteriors', None)
                 if posteriors_data:
@@ -224,25 +224,25 @@ def choose_user_level_group(variables, context):
 
             PolicyParams.objects.create(
                 mooclet=user_mooclet,
-                policy=policy, 
+                policy=policy,
                 parameters=policy_param.get('parameters'),
                 latest_update=datetime.datetime.now()
             )
-            
+
             print("policy created: {}".format(policy.name))
-            
+
             # link the first policy to new mooclet
             if index == 0:
                 user_mooclet.policy = policy
                 user_mooclet.save()
-        
+
         # Create history record to link current mooclet and sub-mooclet
         Value.objects.create(variable=grp_var, learner=context["learner"], text=new_mooclet_name)
-    
+
     # update mooclet id to all current values
     mooclet_values.update(mooclet=user_mooclet)
     print("policy value updated: {}".format(mooclet_values))
-    
+
     # Note: assume sub-mooclets share the same arm name as the current mooclet
     for arm in mooclet_arms:
         version_values = mooclet_values.filter(variable__name='version', version=arm)
@@ -254,9 +254,9 @@ def choose_user_level_group(variables, context):
 
         # update arm id to all reward values
         reward_values.update(version=user_arm)
-        
+
         print("arm updated: {}".format(arm.pk))
-    
+
     version = user_mooclet.run(context={"learner":context["learner"]})
     if type(version) != dict:
         version_dict = model_to_dict(version)
@@ -634,11 +634,11 @@ def if_then_rules(variables, context):
 	version_to_show = choice(context['mooclet'].version_set.all())
 	if_then_rules_ur, created = Variable.objects.get_or_create(name="IF_THEN_RULES_UR")
 	Value.objects.create(
-		variable=if_then_rules_ur, 
-		value=1.0, 
-		text="IF_THEN_RULES_UR", 
-		learner=context["learner"], 
-		mooclet=context["mooclet"], 
+		variable=if_then_rules_ur,
+		value=1.0,
+		text="IF_THEN_RULES_UR",
+		learner=context["learner"],
+		mooclet=context["mooclet"],
 		version=version_to_show
 	)
 	return version_to_show
@@ -685,14 +685,21 @@ def thompson_sampling_contextual(variables, context):
 	if 'learner' not in context:
 		pass
 	print('learner' + str(context['learner']))
-	contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner'])
+
+	# contextual_vars = Value.objects.filter(variable__name__in=contextual_vars, learner=context['learner']).order_by("timestamp") 
 	contextual_vars_dict = {}
-	for val in contextual_vars:
-		contextual_vars_dict[val.variable.name] = val.value
-		contextual_vars = contextual_vars_dict
+	for contextual_var in contextual_vars:
+		if contextual_var != 'version': 
+			contextual_value= Value.objects.filter(variable__name=contextual_var, learner=context['learner']).order_by("-timestamp").first()
+			if contextual_value is None:
+				contextual_vars_dict[contextual_var] = 0
+			else:
+				contextual_vars_dict[contextual_var] = contextual_value.value
+	#contextual_vars = contextual_vars_dict
 	print('contextual vars: ' + str(contextual_vars))
 	current_enrolled = Value.objects.filter(variable__name="version", mooclet=context["mooclet"],
 											policy__name="thompson_sampling_contextual").count()
+	
 	if "uniform_threshold" in parameters:
 		uniform_threshold = parameters["uniform_threshold"]
 	# number of current participants within uniform random threshold, random sample
@@ -754,10 +761,10 @@ def thompson_sampling_contextual(variables, context):
 	# Itterate of all feasible actions
 	for action in all_possible_actions:
 		independent_vars = action.copy()
-		independent_vars.update(contextual_vars)
+		independent_vars.update(contextual_vars_dict)
 		print('independent vars: ' + str(independent_vars))
 		# Compute expected reward given action
-		outcome = calculate_outcome(independent_vars,coef_draw, include_intercept, regression_formula)
+		outcome = calculate_outcome(independent_vars, coef_draw, include_intercept, regression_formula)
 		print("curr_outcome" + str(outcome))
 		print('outcome: ' + str(best_outcome))
 		# Keep track of optimal (action, outcome)
@@ -1392,7 +1399,14 @@ def ts_configurable(variables, context):
 	Value = apps.get_model('engine', 'Value')
 	Version = apps.get_model('engine', 'Version')
 	PolicyParametersHistory = apps.get_model('engine', 'PolicyParametersHistory')
-	# version_content_type = ContentType.objects.get_for_model(Version)
+	# version_instance = Version.objects.first()
+
+	# Check if the instance exists and has a non-null version_json
+	# if version_instance and version_instance.version_json is not None:
+	# 	print("version:", version_instance.version_json)
+	# else:
+	# 	print("No version_json found or no Version instance available.")
+	# # version_content_type = ContentType.objects.get_for_model(Version)
 	#priors we set by hand - will use instructor rating and confidence in future
 	# TODO : all explanations are having the same prior.
 
@@ -1409,9 +1423,22 @@ def ts_configurable(variables, context):
 	#   }
 	policy_parameters = context["policy_parameters"].parameters
 
-	prior_success = policy_parameters['prior']['success']
+	prior = policy_parameters.get('prior', {})
+	# overwrite the arm if no prior found
+	# for key, value in prior.items():
+	# 	if not (isinstance(value, dict) and "failure" in value and "success" in value):
+	# 		prior[key] = {"failure": 1.0, "success": 1.0}
+	
+	default_prior = {"failure": 1.0, "success": 1.0}
+	version_priors = {version_id: prior.get(str(version_id), default_prior) for version_id in [v.id for v in versions]}
 
-	prior_failure = policy_parameters['prior']['failure']
+	# print("versionprior: ", version_priors)
+
+	if not prior:
+		for key, value in version_priors.items():
+			# Update prior with the values from version_priors
+			prior[key] = value
+
 	outcome_variable_name = policy_parameters['outcome_variable_name']
 	#max value of version rating, from qualtrics
 	min_rating, max_rating = policy_parameters["min_rating"] if "min_rating" in policy_parameters else 0, policy_parameters['max_rating']
@@ -1458,8 +1485,10 @@ def ts_configurable(variables, context):
 				student_ratings = student_ratings.all()
 				# student_ratings is a pandas.core.series.Series variable
 				rating_count = student_ratings.count()
+				# print("student ratings:", student_ratings)
 				# rating_average = student_ratings.aggregate(Avg('value'))
 				sum_rewards = student_ratings.aggregate(Sum('value'))
+				# print("sum_rewards:", sum_rewards)
 				sum_rewards = sum_rewards['value__sum']
 				# rating_average = rating_average['value__avg']
 				# if rating_average is None:
@@ -1469,14 +1498,22 @@ def ts_configurable(variables, context):
 				rating_count = 0
 				sum_rewards = 0
 
+			# print("current post:", current_posteriors)
+			# success_update = float(sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
 
-			success_update = (sum_rewards - rating_count * min_rating) / (max_rating - min_rating)
+			success_update = float(sum_rewards - rating_count * min_rating) / float(max_rating - min_rating)
 			successes = success_update
-			failures = rating_count - success_update
+			failures = float(rating_count) - success_update
+			version_prior = prior.get(str(version.id))
+			# print("success", successes)
 
-			current_posteriors[version.id] = {"successes":successes, "failures": failures}
+			if version_prior:
+				# print("prior:", version_prior)
+				successes += version_prior.get("success", 0)
+				failures += version_prior.get("failure", 0)
+			current_posteriors[version.id] = {"successes": successes, "failures": failures}
 
-
+		# print("post:", current_posteriors)
 		new_history = PolicyParametersHistory.create_from_params(context["policy_parameters"])
 
 		new_history.save()
@@ -1484,16 +1521,29 @@ def ts_configurable(variables, context):
 		new_update_time = datetime.datetime.now()
 		context["policy_parameters"].latest_update = new_update_time
 		context["policy_parameters"].save()
+
 	else:
+		# print("here!")
 		current_posteriors = policy_parameters["current_posteriors"]
 
 	version_dict = {}
-	for version in current_posteriors:
-		current_posteriors[version]["successes"]
-		version_dict[Version.objects.get(id=version)] = {"successes":
-														current_posteriors[version]["successes"] + prior_success,
-														"failures":  current_posteriors[version]["failures"] + prior_failure}
-	print(version_dict)
+	for version_id, posteriors in current_posteriors.items():
+		# Get the prior for the current version
+		version_prior = version_priors[version_id]
+
+		# Update the successes and failures by adding the respective priors
+		updated_successes = posteriors["successes"] + version_prior["success"]
+		updated_failures = posteriors["failures"] + version_prior["failure"]
+
+		# Get the version object from the database
+		version_obj = Version.objects.get(id=version_id)
+
+		# Update the version_dict with the new values
+		version_dict[version_obj] = {
+			"successes": updated_successes,
+			"failures": updated_failures
+		}
+
 	if "tspostdiff_thresh" in policy_parameters:
 		print("ts_postdiff")
 		return ts_postdiff_sample(policy_parameters["tspostdiff_thresh"], version_dict, context)
@@ -1617,11 +1667,11 @@ def ts_configurable_with_r(variables, context):
 		uniform_threshold = 0
 
 	current_enrolled = Value.objects.filter(
-		variable__name="version", 
-		mooclet=context["mooclet"], 
+		variable__name="version",
+		mooclet=context["mooclet"],
 		policy__name="ts_configurable_with_r"
 	)
-	
+
 	if uniform_threshold > 0 and current_enrolled.count() <= policy_parameters["uniform_threshold"]:
 		ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 		version_to_show = choice(context['mooclet'].version_set.all())
@@ -1654,7 +1704,7 @@ def ts_configurable_with_r(variables, context):
 			else:
 				rating_count = 0
 				sum_rewards = 0
-    
+
 			update_para = R.r(
 				r'''
 				function(para){
@@ -1669,7 +1719,7 @@ def ts_configurable_with_r(variables, context):
 				}
 				'''
 			)
-   
+
 			as_numeric = R.r['as.numeric']
 			para_vec = R.FloatVector((0, 0, rating_count, sum_rewards))
 			para = update_para(para_vec)
@@ -1691,7 +1741,7 @@ def ts_configurable_with_r(variables, context):
 	version_dict = {}
 	for version in current_posteriors:
 		version_dict[Version.objects.get(id=version)] = {
-      		"successes": current_posteriors[version]["successes"] + prior_success, 
+      		"successes": current_posteriors[version]["successes"] + prior_success,
         	"failures":  current_posteriors[version]["failures"] + prior_failure
         }
 
@@ -1735,13 +1785,13 @@ def toptwo_ts_sample_with_r(toptwots_thresh, versions_dict, context):
 			algorithm_para <- para[5]
 			draw_a <- rbeta(1, sa, fa)
 			draw_b <- rbeta(1, sb, fb)
-			
+
 			is_ur <- 0
 			if (runif(1) < algorithm_para){
 				draw_a <- runif(1)
 				draw_b <- runif(1)
 				is_ur <- 1
-			} 
+			}
 			arm <- 1
 			if(draw_a < draw_b){
 				arm <- 2
@@ -1768,7 +1818,7 @@ def toptwo_ts_sample_with_r(toptwots_thresh, versions_dict, context):
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 	if is_ur == 1:
 		Value.objects.create(
-      		variable=ur_or_ts, value=0.0, text="UR", 
+      		variable=ur_or_ts, value=0.0, text="UR",
             learner=context["learner"], mooclet=context["mooclet"],
 			version=version_to_show
    		)
@@ -1778,7 +1828,7 @@ def toptwo_ts_sample_with_r(toptwots_thresh, versions_dict, context):
 	else:
 		#log policy chosen
 		Value.objects.create(
-      		variable=ur_or_ts, value=1.0, text="TS", 
+      		variable=ur_or_ts, value=1.0, text="TS",
             learner=context["learner"], mooclet=context["mooclet"],
 			version=version_to_show
 		)
@@ -1810,13 +1860,13 @@ def ts_probclip_sample_with_r(tsprobclip_thresh, versions_dict, context):
 			algorithm_para <- para[5]
 			draw_a <- rbeta(1, sa, fa)
 			draw_b <- rbeta(1, sb, fb)
-		
+
 			a <- rbeta(1000, sa, fa)
 			b <- rbeta(1000, sb, fb)
 			pab <- mean(a > b)
-			
+
 			draw_a <- median(c(algorithm_para, 1 - algorithm_para, pab))
-			
+
 			arm <- 1
 			if(draw_a < draw_b) {
 				arm <- 2
@@ -1907,7 +1957,7 @@ def ts_postdiff_sample_with_r(tspostdiff_thresh, versions_dict, context):
 	ur_or_ts, created = Variable.objects.get_or_create(name="UR_or_TS")
 	if is_ur == 1:
 		Value.objects.create(
-      		variable=ur_or_ts, value=0.0, text="UR", 
+      		variable=ur_or_ts, value=0.0, text="UR",
             learner=context["learner"], mooclet=context["mooclet"],
 			version=version_to_show
    		)
@@ -1917,7 +1967,7 @@ def ts_postdiff_sample_with_r(tspostdiff_thresh, versions_dict, context):
 	else:
 		#log policy chosen
 		Value.objects.create(
-      		variable=ur_or_ts, value=1.0, text="TS", 
+      		variable=ur_or_ts, value=1.0, text="TS",
             learner=context["learner"], mooclet=context["mooclet"],
 			version=version_to_show
 		)
@@ -1948,7 +1998,7 @@ def ts_sample_with_r(versions_dict, context):
 			fb <- para[4]
 			draw_a <- rbeta(1, sa, fa)
 			draw_b <- rbeta(1, sb, fb)
-			
+
 			arm <- 1
 			if(draw_a < draw_b) {
 				arm <- 2
