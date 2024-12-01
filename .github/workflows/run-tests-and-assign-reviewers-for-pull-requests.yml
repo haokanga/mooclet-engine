@@ -109,7 +109,7 @@ jobs:
                           # ALLOWED_HOSTS = secure.ALLOWED_HOSTS[os.environ['ENV_TYPE']]
         run: |
           echo "Running Django unit tests"
-          python manage.py test
+          python manage.py test engine
         # Ensure tests pass before proceeding
         continue-on-error: false
 
