@@ -100,12 +100,6 @@ jobs:
         run: |
           python -c "import mooclet_engine; print('Import successful')"
 
-      - name: Apply migrations
-        working-directory: ./mooclet_engine
-        run: |
-          python manage.py makemigrations --noinput
-          python manage.py migrate --noinput
-
       - name: Run Django Unit Tests
         working-directory: ./mooclet_engine
         env:
@@ -115,6 +109,8 @@ jobs:
                           # ALLOWED_HOSTS = secure.ALLOWED_HOSTS[os.environ['ENV_TYPE']]
         run: |
           echo "Running Django unit tests"
+          python manage.py makemigrations --noinput
+          python manage.py migrate --noinput
           python manage.py test engine
         # Ensure tests pass before proceeding
         continue-on-error: false
