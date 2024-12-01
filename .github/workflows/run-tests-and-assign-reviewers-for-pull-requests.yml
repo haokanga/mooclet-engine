@@ -1,0 +1,118 @@
+name: Django CI and Reviewer Assignment for Pull Requests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - synchronize # A pull request's head branch was updated. For example, the head branch was updated from the base branch or new commits were pushed to the head branch.
+
+jobs:
+  build-and-assign:
+    # Define the environment where the workflow will run
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: moocletdb
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
+
+    steps:
+      # Step 1: Check out the repository's code
+      - name: Checkout the pull request code
+        uses: actions/checkout@v4
+        with:
+          # Ensures that the PR branch is checked out for testing
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      # Step 2: Set up Python environment
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # Step 3: Dynamically create secure.py
+      - name: Create secure.py for testing
+        working-directory: ./mooclet_engine/mooclet_engine/settings
+        run: |
+          echo "Creating secure.py for testing"
+          cat <<EOF > secure.py
+          SECRET_KEY = 'fake-secret-key-for-testing'
+
+          LOCAL_DATABASE = {
+              'dev': {
+                  'ENGINE': 'django.db.backends.postgresql',
+                  'NAME': 'moocletdb',
+                  'USER': 'test_user',
+                  'PASSWORD': 'test_password',
+                  'HOST': 'localhost',
+                  'PORT': 5432,
+              }
+          }
+          
+          ALLOWED_HOSTS = {
+              'dev': ['localhost', '127.0.0.1'],
+              'test': ['testserver'],
+              'prod': ['example.com']
+          }
+          
+          LOCAL_CELERY_BROKER_URL = 'redis://localhost:6379/0'
+          EOF
+
+      # Step 4: Install dependencies
+      - name: Install Dependencies
+        working-directory: ./mooclet_engine
+        run: |
+          echo "Installing Python dependencies"
+          python -m pip install --upgrade pip==23.3.1
+          pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
+          # address pandas numpy scipy versioning issues 
+          pip install --upgrade pandas numpy scipy
+          # to address: django.core.exceptions.ImproperlyConfigured: Error loading psycopg2 module: No module named 'psycopg2'
+          pip install psycopg2-binary==2.8.6
+
+      # Step 5: Wait for PostgreSQL
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 1
+          done
+
+      # Step 6: Run Django unit tests
+      - name: Run Django Unit Tests
+        working-directory: ./mooclet_engine
+        env:
+          DJANGO_SETTINGS_MODULE: mooclet_engine.settings.local
+          ENV_TYPE: test  # Set ENV_TYPE to "test" for GitHub Actions
+                          # File "/home/runner/work/mooclet-engine/mooclet-engine/mooclet_engine/mooclet_engine/settings/base.py", line 47, in <module>
+                          # ALLOWED_HOSTS = secure.ALLOWED_HOSTS[os.environ['ENV_TYPE']]
+        run: |
+          echo "Running Django unit tests"
+          python manage.py test
+        # Ensure tests pass before proceeding
+        continue-on-error: false
+
+      # Step 7: Assign reviewers to the pull request
+      - name: Assign Reviewers to the Pull Request
+        if: success() # Only assign reviewers if tests pass successfully
+        uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          # Specify the configuration file for the auto-assign action
+          configuration-path: '.github/auto_assign.yml'
+
+      # Optional: Notify the results
+      - name: Notify test and assignment results
+        if: failure()
+        run: echo "Tests failed. Reviewers will not be assigned."
