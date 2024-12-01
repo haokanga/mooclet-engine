@@ -79,6 +79,8 @@ jobs:
           pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
           # to address: django.core.exceptions.ImproperlyConfigured: Error loading psycopg2 module: No module named 'psycopg2'
           pip install psycopg2-binary==2.8.6
+          # The installed pandas version requires numpy >= 1.22.4. This can be resolved by upgrading numpy to the required version.
+          pip install --upgrade numpy
 
 
       # Step 5: Wait for PostgreSQL
