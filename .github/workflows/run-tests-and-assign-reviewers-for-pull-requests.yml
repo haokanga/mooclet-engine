@@ -7,6 +7,7 @@ on:
       - opened
       - reopened
       - ready_for_review
+      - synchronize # A pull request's head branch was updated. For example, the head branch was updated from the base branch or new commits were pushed to the head branch.
 
 jobs:
   build-and-assign:
