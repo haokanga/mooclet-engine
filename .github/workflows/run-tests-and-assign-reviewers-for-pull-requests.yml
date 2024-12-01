@@ -47,7 +47,7 @@ jobs:
           SECRET_KEY = 'fake-secret-key-for-testing'
 
           LOCAL_DATABASE = {
-              'default': {
+              'dev': {
                   'ENGINE': 'django.db.backends.postgresql',
                   'NAME': 'moocletdb',
                   'USER': 'test_user',
