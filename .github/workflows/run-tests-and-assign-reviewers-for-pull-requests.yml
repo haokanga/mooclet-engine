@@ -76,11 +76,11 @@ jobs:
         run: |
           echo "Installing Python dependencies"
           python -m pip install --upgrade pip==23.3.1
-          # to address: django.core.exceptions.ImproperlyConfigured: Error loading psycopg2 module: No module named 'psycopg2'
-          pip install psycopg2-binary==2.8.6
+          pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
           # address pandas numpy scipy versioning issues 
           pip install --upgrade pandas numpy scipy
-          pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
+          # to address: django.core.exceptions.ImproperlyConfigured: Error loading psycopg2 module: No module named 'psycopg2'
+          pip install psycopg2-binary==2.8.6
 
       # Step 5: Wait for PostgreSQL
       - name: Wait for PostgreSQL to be ready
