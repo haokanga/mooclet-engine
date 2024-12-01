@@ -56,6 +56,12 @@ jobs:
                   'PORT': 5432,
               }
           }
+          
+          ALLOWED_HOSTS = {
+              'dev': ['localhost', '127.0.0.1'],
+              'test': ['testserver'],
+              'prod': ['example.com']
+          }
           EOF
 
       # Step 4: Install dependencies
