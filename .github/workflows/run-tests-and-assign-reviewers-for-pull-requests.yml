@@ -1,0 +1,59 @@
+name: Django CI and Reviewer Assignment for Pull Requests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+
+jobs:
+  build-and-assign:
+    # Define the environment where the workflow will run
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository's code
+      - name: Checkout the pull request code
+        uses: actions/checkout@v4
+        with:
+          # Ensures that the PR branch is checked out for testing
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      # Step 2: Set up Python environment
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' # Specify the Python version required for the Django project
+
+      # Step 3: Install dependencies
+      - name: Install Dependencies
+        working-directory: ./mooclet_engine
+        run: |
+          echo "Installing Python dependencies"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Run Django unit tests
+      - name: Run Django Unit Tests
+        working-directory: ./mooclet_engine
+        run: |
+          echo "Running Django unit tests"
+          python manage.py test
+        # Ensure tests pass before proceeding
+        continue-on-error: false
+
+      # Step 5: Assign reviewers to the pull request
+      - name: Assign Reviewers to the Pull Request
+        if: success() # Only assign reviewers if tests pass successfully
+        uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          # Specify the configuration file for the auto-assign action
+          configuration-path: '.github/auto_assign.yml'
+
+      # Optional: Notify the results
+      - name: Notify test and assignment results
+        if: failure()
+        run: echo "Tests failed. Reviewers will not be assigned."
