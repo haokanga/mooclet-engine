@@ -29,12 +29,13 @@ jobs:
           python-version: '3.9' # Specify the Python version required for the Django project
 
       # Step 3: Install dependencies
+      # requirements_latest_version.txt is the correct requirements file
       - name: Install Dependencies
         working-directory: ./mooclet_engine
         run: |
           echo "Installing Python dependencies"
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements_latest_version.txt
 
       # Step 4: Run Django unit tests
       - name: Run Django Unit Tests
