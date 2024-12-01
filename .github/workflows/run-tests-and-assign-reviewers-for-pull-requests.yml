@@ -104,7 +104,8 @@ jobs:
                           # ALLOWED_HOSTS = secure.ALLOWED_HOSTS[os.environ['ENV_TYPE']]
         run: |
           echo "Running Django unit tests"
-          python -m unittest discover -s mooclet_engine/engine
+          python -m unittest discover -s mooclet_engine -p "tests.py"
+
         # Ensure tests pass before proceeding
         continue-on-error: false
 
