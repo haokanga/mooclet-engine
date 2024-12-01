@@ -94,6 +94,7 @@ jobs:
       - name: Run Django Unit Tests
         working-directory: ./mooclet_engine
         env:
+          PYTHONPATH: ${{ github.workspace }}/mooclet_engine  # Add project root to PYTHONPATH, to address ModuleNotFoundError for mooclet_engine.data_exchange, mooclet_engine.engine, and mooclet_engine.mooclet_engine
           DJANGO_SETTINGS_MODULE: mooclet_engine.settings.local
           ENV_TYPE: test  # Set ENV_TYPE to "test" for GitHub Actions
                           # File "/home/runner/work/mooclet-engine/mooclet-engine/mooclet_engine/mooclet_engine/settings/base.py", line 47, in <module>
