@@ -22,6 +22,10 @@ jobs:
           POSTGRES_PASSWORD: test_password
         ports:
           - 5432:5432
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
 
     steps:
       # Step 1: Check out the repository's code
@@ -62,6 +66,8 @@ jobs:
               'test': ['testserver'],
               'prod': ['example.com']
           }
+          
+          LOCAL_CELERY_BROKER_URL = 'redis://localhost:6379/0'
           EOF
 
       # Step 4: Install dependencies
