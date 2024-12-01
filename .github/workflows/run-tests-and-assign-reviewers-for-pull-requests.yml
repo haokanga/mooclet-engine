@@ -35,8 +35,8 @@ jobs:
         working-directory: ./mooclet_engine
         run: |
           echo "Installing Python dependencies"
-          python -m pip install --upgrade pip
-          pip install -r requirements_latest_version.txt
+          python -m pip install --upgrade pip==23.3.1
+          pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
 
       # Step 4: Run Django unit tests
       - name: Run Django Unit Tests
