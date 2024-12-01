@@ -1,0 +1,43 @@
+services:
+  mooclet-postgres:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_USER: mooclet
+      POSTGRES_PASSWORD: mooclet
+      POSTGRES_DB: moocletdb
+    networks:
+      - moocletservice
+    ports:
+      - "5433:5432"
+    volumes:
+      - moocletdata:/var/lib/postgresql/data
+      - ./docker_setup_sql.sh:/docker-entrypoint-initdb.d/docker_setup_sql.sh
+
+  mooclet-api:
+    container_name: mooclet-api
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: mooclet-api:latest
+    pull_policy: never
+    volumes:
+      - moocletdata:/usr/mooclet_engine
+    networks:
+      - moocletservice 
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py loaddata policy &&
+             python manage.py create_upgrade_user_with_token &&
+             python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - mooclet-postgres
+
+volumes:
+  moocletdata:
+
+networks:
+  moocletservice:
+    driver: "bridge"
