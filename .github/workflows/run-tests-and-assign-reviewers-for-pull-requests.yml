@@ -13,6 +13,15 @@ jobs:
   build-and-assign:
     # Define the environment where the workflow will run
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: moocletdb
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
 
     steps:
       # Step 1: Check out the repository's code
@@ -27,10 +36,29 @@ jobs:
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9' # Specify the Python version required for the Django project
+          python-version: '3.9'
 
-      # Step 3: Install dependencies
-      # requirements_latest_version.txt is the correct requirements file
+      # Step 3: Dynamically create secure.py
+      - name: Create secure.py for testing
+        working-directory: ./mooclet_engine/mooclet_engine/settings
+        run: |
+          echo "Creating secure.py for testing"
+          cat <<EOF > secure.py
+          SECRET_KEY = 'fake-secret-key-for-testing'
+
+          LOCAL_DATABASE = {
+              'default': {
+                  'ENGINE': 'django.db.backends.postgresql',
+                  'NAME': 'moocletdb',
+                  'USER': 'test_user',
+                  'PASSWORD': 'test_password',
+                  'HOST': 'localhost',
+                  'PORT': 5432,
+              }
+          }
+          EOF
+
+      # Step 4: Install dependencies
       - name: Install Dependencies
         working-directory: ./mooclet_engine
         run: |
@@ -38,16 +66,26 @@ jobs:
           python -m pip install --upgrade pip==23.3.1
           pip install --use-deprecated=legacy-resolver -r requirements_latest_version.txt
 
-      # Step 4: Run Django unit tests
+      # Step 5: Wait for PostgreSQL
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 1
+          done
+
+      # Step 6: Run Django unit tests
       - name: Run Django Unit Tests
         working-directory: ./mooclet_engine
+        env:
+          DJANGO_SETTINGS_MODULE: mooclet_engine.settings.local
         run: |
           echo "Running Django unit tests"
           python manage.py test
         # Ensure tests pass before proceeding
         continue-on-error: false
 
-      # Step 5: Assign reviewers to the pull request
+      # Step 7: Assign reviewers to the pull request
       - name: Assign Reviewers to the Pull Request
         if: success() # Only assign reviewers if tests pass successfully
         uses: kentaro-m/auto-assign-action@v2.0.0
