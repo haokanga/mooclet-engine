@@ -85,6 +85,9 @@ jobs:
         working-directory: ./mooclet_engine
         env:
           DJANGO_SETTINGS_MODULE: mooclet_engine.settings.local
+          ENV_TYPE: test  # Set ENV_TYPE to "test" for GitHub Actions
+                          # File "/home/runner/work/mooclet-engine/mooclet-engine/mooclet_engine/mooclet_engine/settings/base.py", line 47, in <module>
+                          # ALLOWED_HOSTS = secure.ALLOWED_HOSTS[os.environ['ENV_TYPE']]
         run: |
           echo "Running Django unit tests"
           python manage.py test
